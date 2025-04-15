@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom CSS Variables */
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light;
+
+  /* Light theme variables */
+  --color-white: #ffffff;
+  --color-green-light: #9bc53d;
+  --color-navy: #373f51;
+  --color-blue: #3c7a89;
+  --color-blue-light: #8cbfcf;
+  --color-green: #9bc53d;
+
+  --color-background: var(--color-white);
+  --color-background-rgb: 255, 255, 255;
+  --color-text: var(--color-navy);
+  --color-primary: var(--color-blue);
+  --color-primary-hover: var(--color-blue-light);
+  --color-navbar-bg: rgba(255, 255, 255, 0.9);
+  --color-navbar-shadow: rgba(55, 63, 81, 0.1);
+  --color-accent: var(--color-green-light);
+
+  /* Input variables */
+  --input-bg: #f3f4f6;
+  --input-border: #e5e7eb;
+  --input-text: var(--color-navy);
+  --input-placeholder: rgba(26, 26, 26, 0.5);
+  --container-bg: rgba(255, 255, 255, 0.65);
+  --container-border: rgba(255, 255, 255, 0.18);
+  --container-shadow: rgba(31, 38, 135, 0.15);
+}
+
+/* Dark theme styles */
+:root.dark {
+  color-scheme: dark;
+
+  --color-background: #222b45;
+  --color-background-rgb: 34, 43, 69;
+  --color-text: var(--color-white);
+  --color-primary: var(--color-blue-light);
+  --color-primary-hover: var(--color-blue);
+  --color-navbar-bg: rgba(26, 32, 44, 0.9);
+  --color-navbar-shadow: rgba(0, 0, 0, 0.4);
+  --color-accent: var(--color-green);
+
+  /* Input variables for dark mode */
+  --input-bg: rgba(255, 255, 255, 0.08);
+  --input-border: rgba(255, 255, 255, 0.15);
+  --input-text: var(--color-white);
+  --input-placeholder: rgba(255, 255, 255, 0.5);
+  --container-bg: rgba(255, 255, 255, 0.12);
+  --container-border: rgba(255, 255, 255, 0.15);
+  --container-shadow: rgba(0, 0, 0, 0.4);
+}
+
+/* Base styles that will complement Tailwind */
+@layer base {
+  body {
+    @apply m-0 min-w-[320px] min-h-screen;
+    color: var(--color-text);
+    background-color: var(--color-background);
+    transition:
+      color 0.3s,
+      background-color 0.3s;
+  }
+
+  a {
+    @apply font-medium no-underline;
+    color: var(--color-primary);
+  }
+
+  a:hover {
+    color: var(--color-primary-hover);
+  }
+
+  button {
+    @apply rounded-md border-none px-5 py-2.5 text-base font-medium cursor-pointer transition-all duration-300 bg-transparent;
+    color: var(--color-text);
+    font-family: inherit;
+  }
+
+  button:hover {
+    background-color: var(--color-primary);
+    color: white;
+  }
+
+  button:focus,
+  button:focus-visible {
+    @apply outline-none;
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}

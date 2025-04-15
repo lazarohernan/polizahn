@@ -1,0 +1,246 @@
+/* tailwindcss base styles */
+/*! @import */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom CSS Variables */
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light;
+
+  /* Light theme variables */
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-green-light: #9bc53d;
+  --color-navy: #373f51;
+  --color-blue: #144C62;
+  --color-blue-light: #1a6080;
+  --color-green: #9bc53d;
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+
+  /* Semantic colors - Light theme */
+  --color-background: var(--color-white);
+  --color-background-rgb: 255, 255, 255;
+  --color-text: var(--color-gray-900);
+  --color-text-secondary: var(--color-gray-600);
+  --color-primary: var(--color-blue);
+  --color-primary-hover: var(--color-blue-light);
+  --color-navbar-bg: #1E4D64;
+  --color-navbar-shadow: rgba(0, 0, 0, 0.1);
+  --color-accent: var(--color-green-light);
+  --color-heading: var(--color-gray-900);
+  --color-text-inverse: var(--color-white);
+  --color-link: var(--color-blue);
+  --color-link-hover: var(--color-blue-light);
+  --color-border: var(--color-gray-200);
+  --color-divider: var(--color-gray-200);
+
+  /* Input & Container variables */
+  --input-bg: var(--color-gray-50);
+  --input-border: var(--color-gray-200);
+  --input-text: var(--color-gray-900);
+  --input-placeholder: var(--color-gray-400);
+  --container-bg: rgba(255, 255, 255, 0.65);
+  --container-border: rgba(255, 255, 255, 0.18);
+  --container-shadow: rgba(31, 38, 135, 0.15);
+
+  /* Hover & Focus states */
+  --hover-bg: var(--color-gray-100);
+  --hover-bg-opacity: 0.7;
+  --focus-ring: var(--color-blue);
+  --focus-ring-opacity: 0.2;
+}
+
+/* Dark theme styles */
+:root.dark {
+  color-scheme: dark;
+
+  /* Semantic colors - Dark theme */
+  --color-background: #0F1A21;
+  --color-background-rgb: 15, 26, 33;
+  --color-text: var(--color-gray-100);
+  --color-text-secondary: var(--color-gray-400);
+  --color-primary: var(--color-blue-light);
+  --color-primary-hover: var(--color-blue);
+  --color-navbar-bg: #0B1218;
+  --color-navbar-shadow: rgba(0, 0, 0, 0.4);
+  --color-accent: var(--color-green);
+  --color-heading: var(--color-white);
+  --color-text-inverse: var(--color-gray-900);
+  --color-link: var(--color-blue-light);
+  --color-link-hover: var(--color-blue);
+  --color-border: var(--color-gray-700);
+  --color-divider: var(--color-gray-800);
+
+  /* Input & Container variables */
+  --input-bg: rgba(255, 255, 255, 0.05);
+  --input-border: rgba(255, 255, 255, 0.1);
+  --input-text: var(--color-gray-100);
+  --input-placeholder: var(--color-gray-500);
+  --container-bg: rgba(31, 41, 55, 0.8);
+  --container-border: rgba(255, 255, 255, 0.1);
+  --container-shadow: rgba(0, 0, 0, 0.4);
+
+  /* Hover & Focus states */
+  --hover-bg: rgba(255, 255, 255, 0.05);
+  --hover-bg-opacity: 0.1;
+  --focus-ring: var(--color-blue-light);
+  --focus-ring-opacity: 0.3;
+}
+
+/* Base styles that will complement Tailwind */
+@layer base {
+  /* Transiciones globales para el cambio de tema */
+  :root {
+    transition: color-scheme 0.2s ease;
+  }
+
+  /* Transiciones esenciales */
+  button, a, input, select {
+    transition: background-color 0.2s ease,
+                border-color 0.2s ease,
+                color 0.2s ease,
+                opacity 0.2s ease;
+  }
+
+  /* Desactivar transiciones para usuarios que prefieren menos movimiento */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+
+  body {
+    @apply m-0 min-w-[320px] min-h-screen;
+    color: var(--color-text);
+    background-color: var(--color-background);
+  }
+
+  a {
+    @apply font-medium no-underline;
+    color: var(--color-primary);
+  }
+
+  a:hover {
+    color: var(--color-primary-hover);
+  }
+
+  button {
+    @apply rounded-md border-none px-5 py-2.5 text-base font-medium cursor-pointer bg-transparent;
+    color: var(--color-text);
+    font-family: inherit;
+  }
+
+  button:hover {
+    background-color: var(--color-primary);
+    color: var(--color-white);
+  }
+
+  button:focus,
+  button:focus-visible {
+    @apply outline-none;
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  /* Mejoras para el modo oscuro */
+  .dark input, .dark textarea, .dark select {
+    background-color: var(--input-bg);
+    color: var(--input-text);
+    border-color: var(--input-border);
+  }
+}
+
+/* Estilos personalizados para los toasts */
+.Vue-Toastification__container.custom-toast-container {
+  z-index: 9999;
+  padding: 0 !important;
+  margin: 0 1.5rem 1.5rem !important;
+}
+
+.Vue-Toastification__toast.custom-toast {
+  box-shadow: 0 8px 32px var(--container-shadow);
+  border: 1px solid var(--container-border);
+  background-color: var(--container-bg);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-text);
+  margin-bottom: 0.75rem !important;
+  padding: 0.75rem 1rem !important;
+  min-height: 40px !important;
+  border-radius: 0.75rem;
+}
+
+.Vue-Toastification__toast.custom-toast .Vue-Toastification__icon {
+  margin: 0 8px 0 0 !important;
+  width: 16px !important;
+  height: 16px !important;
+  flex-shrink: 0;
+}
+
+.Vue-Toastification__toast.custom-toast .Vue-Toastification__body {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 16px !important;
+}
+
+/* Modo claro */
+:root:not(.dark) .Vue-Toastification__toast--success.custom-toast {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+}
+
+:root:not(.dark) .Vue-Toastification__toast--error.custom-toast {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+}
+
+:root:not(.dark) .Vue-Toastification__toast--warning.custom-toast {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+}
+
+:root:not(.dark) .Vue-Toastification__toast--info.custom-toast {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+}
+
+/* Modo oscuro */
+.dark .Vue-Toastification__toast--success.custom-toast {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+}
+
+.dark .Vue-Toastification__toast--error.custom-toast {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+}
+
+.dark .Vue-Toastification__toast--warning.custom-toast {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+}
+
+.dark .Vue-Toastification__toast--info.custom-toast {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+}
+
+/* Ajustes de iconos por tipo */
+.Vue-Toastification__toast.custom-toast .Vue-Toastification__icon {
+  color: var(--color-white);
+}
