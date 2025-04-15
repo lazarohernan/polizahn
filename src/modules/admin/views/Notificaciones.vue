@@ -195,7 +195,6 @@
   import { ref, computed, watch, onMounted } from 'vue';
   import { Bell, Search, Filter, CheckCheck, X } from 'lucide-vue-next';
   import SearchBar from '@/modules/common/components/SearchBar.vue';
-  import { useSearch } from '@/composables/useSearch';
   import { usePermissions } from '@/composables/usePermissions';
   import { useToast } from 'vue-toastification';
   import type { Notification, NotificationType } from '@/types';
@@ -274,8 +273,18 @@
   // Filtro activo
   const activeFilter = ref<NotificationType | 'all'>('all');
 
-  // Búsqueda y filtrado
-  const { searchQuery, filteredItems } = useSearch(notifications.value, ['title', 'message']);
+  // Añadir función de filtrado local
+  const searchQuery = ref('');
+  const filteredItems = computed(() => {
+    if (!searchQuery.value) return notifications.value;
+    
+    const query = searchQuery.value.toLowerCase();
+    return notifications.value.filter(
+      notification => 
+        notification.title?.toLowerCase().includes(query) ||
+        notification.message?.toLowerCase().includes(query)
+    );
+  });
 
   // Estadísticas de notificaciones
   const notificationStats = computed(() => {

@@ -103,7 +103,7 @@
 
       <!-- Estado sin resultados de búsqueda -->
       <div
-        v-else-if="searchQuery && filteredCotizaciones.length === 0"
+        v-else-if="searchQuery && filteredItems.length === 0"
         class="bg-container-bg border border-gray-200 dark:border-gray-700 rounded-2xl p-12"
       >
         <div class="flex flex-col items-center justify-center gap-4">
@@ -150,7 +150,7 @@
             </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
               <tr 
-                v-for="cotizacion in filteredCotizaciones" 
+                v-for="cotizacion in filteredItems" 
                 :key="cotizacion.id_cotizacion"
                 class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
               >
@@ -210,7 +210,7 @@
         <!-- Vista de tarjetas en dispositivos móviles -->
         <div class="grid grid-cols-1 gap-4 md:hidden">
           <div 
-            v-for="cotizacion in filteredCotizaciones" 
+            v-for="cotizacion in filteredItems" 
             :key="cotizacion.id_cotizacion"
             class="bg-container-bg border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden"
           >
@@ -284,7 +284,7 @@
         <!-- Paginación -->
         <div class="mt-4 flex items-center justify-between">
           <div class="text-sm text-gray-700 dark:text-gray-300">
-            Mostrando <span class="font-medium">{{ paginatedCotizaciones.length }}</span> de <span class="font-medium">{{ filteredCotizaciones.length }}</span> cotizaciones
+            Mostrando <span class="font-medium">{{ paginatedItems.length }}</span> de <span class="font-medium">{{ filteredItems.length }}</span> cotizaciones
           </div>
           
           <div class="flex items-center gap-2">
@@ -362,9 +362,6 @@ import { storeToRefs } from 'pinia';
 import { supabase } from '@/lib/supabase';
 import type { Filter } from '@/types/filters';
 
-// Importar composables
-import { useSearch } from '@/composables/useSearch';
-
 // Componente de modales 
 // Nota: Estos componentes se deberían crear en la carpeta components
 const AddCotizacionModal = defineAsyncComponent(() => 
@@ -429,22 +426,28 @@ const filters = ref<Filter>({
 });
 
 // Búsqueda
-const { searchQuery, filteredItems: filteredCotizaciones } = useSearch(cotizaciones, [
-  'numero_cotizacion',
-  'nombre_cliente',
-  'tipo_seguro',
-  'descripcion',
-]);
+const searchQuery = ref('');
+const filteredItems = computed(() => {
+  if (!searchQuery.value) return cotizaciones.value;
+  
+  const query = searchQuery.value.toLowerCase();
+  return cotizaciones.value.filter(
+    cotizacion => 
+      cotizacion.nombre_cliente?.toLowerCase().includes(query) ||
+      cotizacion.descripcion?.toLowerCase().includes(query) ||
+      cotizacion.correo_cliente?.toLowerCase().includes(query)
+  );
+});
 
 // Cálculos para paginación
 const totalPages = computed(() => {
-  return Math.ceil(filteredCotizaciones.value.length / itemsPerPage.value);
+  return Math.ceil(filteredItems.value.length / itemsPerPage.value);
 });
 
-const paginatedCotizaciones = computed(() => {
+const paginatedItems = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage.value;
   const end = start + itemsPerPage.value;
-  return filteredCotizaciones.value.slice(start, end);
+  return filteredItems.value.slice(start, end);
 });
 
 // Calcular filtros activos

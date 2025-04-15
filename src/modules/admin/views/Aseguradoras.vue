@@ -117,10 +117,11 @@
   import { useQuery, useQueryClient } from '@tanstack/vue-query';
   import { Plus, Search } from 'lucide-vue-next';
   import { useToast } from 'vue-toastification';
+  import { useRouter, useRoute } from 'vue-router';
 
   //Composables y otras funciones
   import { useColorThief } from '@/composables/useColorThief';
-  import { useSearch } from '@/composables/useSearch';
+  import { useSearchClients } from '@/composables/useSearchClients';
   import { useAseguradoras } from '@/composables/useAseguradoras';
   import { usePermissions } from '@/composables/usePermissions';
   
@@ -166,7 +167,7 @@
   const aseguradoras = computed(() => response.value?.data ?? []);
 
   //Variables para habilitar el SEARCH
-  const { searchQuery, filteredItems } = useSearch(aseguradoras, ['nombre', 'descripcion']);
+  const { searchQuery, filteredItems } = useSearchClients(aseguradoras, ['nombre', 'descripcion']);
   const filteredInsurers = ref(filteredItems.value);
 
   // Sincronizar filteredInsurers con filteredItems

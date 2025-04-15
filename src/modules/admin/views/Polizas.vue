@@ -141,11 +141,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { Shield, Search, DownloadIcon } from 'lucide-vue-next';
-import { useSearch } from '@/composables/useSearch';
-import { usePolizas } from '@/composables/usePolizas';
-import type { Poliza } from '@/composables/usePolizas';
 import AddPolicyModal from '@/modules/admin/components/AddPolicyModal.vue';
 import ViewPolicyModal from '@/modules/admin/components/ViewPolicyModal.vue';
 import SearchBar from '@/modules/common/components/SearchBar.vue';
@@ -154,6 +151,8 @@ import { useAuthStore } from '@/stores/auth.store';
 import { storeToRefs } from 'pinia';
 import PermissionWrapper from '@/components/PermissionWrapper.vue';
 import { usePermissions } from '@/composables/usePermissions';
+import { usePolizas } from '@/composables/usePolizas';
+import type { Poliza } from '@/composables/usePolizas';
 
 // Definimos la interfaz que espera ViewPolicyModal
 interface PolizaWithAseguradora extends Poliza {
@@ -240,10 +239,17 @@ onMounted(async () => {
   await permissions.loadPermissions();
 });
 
-const { searchQuery, filteredItems: filteredPolicies } = useSearch(polizas, [
-  'nombre',
-  'descripcion',
-]);
+const searchQuery = ref('');
+const filteredPolicies = computed(() => {
+  if (!searchQuery.value) return polizas.value;
+  
+  const query = searchQuery.value.toLowerCase();
+  return polizas.value.filter(
+    poliza => 
+      poliza.nombre?.toLowerCase().includes(query) ||
+      poliza.descripcion?.toLowerCase().includes(query)
+  );
+});
 
 const getPolicyIcon = () => Shield;
 

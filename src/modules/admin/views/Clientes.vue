@@ -248,6 +248,7 @@
           v-if="currentModal === 'details'"
           :show="true"
           :client="selectedClient"
+          :usuarios="usuarios"
           @close="handleCloseModal"
           @update-client="handleUpdateClient"
           @delete-client="handleDeleteClient"
@@ -264,6 +265,7 @@
           v-else-if="currentModal === 'policies'"
           :show="true"
           :client="selectedClient"
+          :usuarios="usuarios"
           @close="handleCloseModal"
         />
 
@@ -271,6 +273,7 @@
           v-else-if="currentModal === 'payments'"
           :show="true"
           :client="selectedClient"
+          :usuarios="usuarios"
           :plan-de-pago-id="selectedPlanDePagoId"
           @close="handleCloseModal"
         />
@@ -285,6 +288,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useSearchClients } from '@/composables/useSearchClients';
 import { useClientes } from '@/composables/useClientes';
 import { usePermissions } from '@/composables/usePermissions';
+import { useUsuarios } from '@/composables/useUsuarios';
 import type { Database } from '@/lib/supabase';
 import SearchBar from '@/modules/common/components/SearchBar.vue';
 import PaginationButtons from '@/modules/common/components/PaginationButtons.vue';
@@ -307,7 +311,19 @@ import { useToast } from 'vue-toastification';
 import { useAuthStore } from '@/stores/auth.store';
 import { storeToRefs } from 'pinia';
 
-type Cliente = Database['public']['Tables']['clientes']['Row'];
+type Cliente = Database['public']['Tables']['clientes']['Row'] & {
+  total_polizas?: number;
+  foto?: string;
+  direccion?: string;
+};
+
+// Definir tipo Usuario
+type Usuario = {
+  id_usuario: string;
+  nombre: string;
+  correo: string;
+  [key: string]: any; // Para cualquier otra propiedad que pueda tener
+};
 
 // Composables
 const router = useRouter();
@@ -318,6 +334,7 @@ const permissions = usePermissions();
 const authStore = useAuthStore();
 const { id_correduria } = storeToRefs(authStore);
 const { searchClients, loading: searchLoading, error: searchError, filteredItems } = useSearchClients();
+const { getUsuariosPorCorreduria } = useUsuarios();
 
 // Estado
 const loading = ref(false);
@@ -329,6 +346,7 @@ const paginaActual = ref(1);
 const limite = ref(10);
 const totalRegistros = ref(0);
 const selectedPlanDePagoId = ref<string>('');
+const usuarios = ref<Usuario[]>([]);
 
 // Computed Properties
 const isListView = computed(() => route.name === 'clientes');
@@ -444,6 +462,11 @@ const handleUpdateClient = async (client: any) => {
   }
   
   try {
+    if (!client.id_cliente) {
+      toast.error('Error: ID de cliente no válido');
+      return;
+    }
+    
     await updateCliente(client.id_cliente, client);
     await loadClientes();
     handleCloseModal();
@@ -486,8 +509,21 @@ const handleItemsPerPageChange = (newValue: number) => {
 // Cargar datos iniciales
 onMounted(async () => {
   await loadClientes();
+  await loadUsuarios();
   if (!permissions.permissionsLoaded.value) {
     await permissions.loadPermissions();
   }
 });
+
+// Añadir la función para cargar usuarios
+const loadUsuarios = async () => {
+  try {
+    const response = await getUsuariosPorCorreduria(id_correduria.value);
+    if (response && response.data) {
+      usuarios.value = response.data;
+    }
+  } catch (error) {
+    console.error('Error al cargar usuarios:', error);
+  }
+};
 </script>
