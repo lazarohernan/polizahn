@@ -7,6 +7,5 @@
       "src": "/(.*)",
       "dest": "/"
     }
-  ],
-  "ignoreCommand": "echo 'Ignoring type checks...'"
+  ]
 } 
