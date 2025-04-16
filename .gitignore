@@ -39,3 +39,11 @@ lerna-debug.log*
 
 # Cline documentation
 cline_docs/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Generated JavaScript files from TypeScript and Vue
+# Ignore .js files that correspond to .ts or .vue files
+src/**/*.ts.js
+src/**/*.vue.js
