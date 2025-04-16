@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="32px" height="32px" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Seguros Favicon</title>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="favicon">
+            <rect id="background" fill="#2563EB" x="0" y="0" width="32" height="32" rx="6"></rect>
+            <path d="M16,6 C21.5228,6 26,10.4772 26,16 C26,21.5228 21.5228,26 16,26 C10.4772,26 6,21.5228 6,16 C6,10.4772 10.4772,6 16,6 Z M16,8 C11.5817,8 8,11.5817 8,16 C8,20.4183 11.5817,24 16,24 C20.4183,24 24,20.4183 24,16 C24,11.5817 20.4183,8 16,8 Z" id="shield" fill="#FFFFFF" fill-rule="nonzero"></path>
+            <path d="M16,12 C17.1046,12 18,12.8954 18,14 L18,18 C18,19.1046 17.1046,20 16,20 C14.8954,20 14,19.1046 14,18 L14,14 C14,12.8954 14.8954,12 16,12 Z" id="lock" fill="#FFFFFF"></path>
+        </g>
+    </g>
+</svg>
