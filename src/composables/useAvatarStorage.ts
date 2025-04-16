@@ -24,6 +24,29 @@ interface UploadAvatarResult {
   error: string | null
 }
 
+interface StorageError {
+  message: string;
+  [key: string]: any;
+}
+
+interface SupabaseStorageResponse {
+  data: any;
+  error: StorageError | null;
+}
+
+// Tipos para las respuestas de Supabase Storage
+interface SupabaseStorageUploadResponse {
+  data: any;
+  error: StorageError | null;
+}
+
+interface SupabaseStoragePublicUrlResponse {
+  data: {
+    publicUrl: string;
+  };
+  error: StorageError | null;
+}
+
 export const useAvatarStorage = () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -159,7 +182,7 @@ export const useAvatarStorage = () => {
 
       // Convertir directamente el base64 a blob
       const byteCharacters = atob(base64Data)
-      const byteArrays = []
+      const byteArrays: BlobPart[] = []
       const sliceSize = 512
       
       for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
@@ -235,7 +258,7 @@ export const useAvatarStorage = () => {
       }
 
       // Estructura para almacenar el error
-      let uploadError = null
+      let uploadError: StorageError | null = null
       let uploadAttempts = 0
       const maxAttempts = 3
       
@@ -255,7 +278,7 @@ export const useAvatarStorage = () => {
             .upload(filename, arrayBuffer, {
               contentType: mimeType,
               upsert: true
-            })
+            }) as SupabaseStorageUploadResponse
           
           uploadError = result.error
           
@@ -267,7 +290,7 @@ export const useAvatarStorage = () => {
           console.error(`Error en subida (intento ${uploadAttempts}):`, uploadError)
           
           // Si no es error 400 o ya hemos intentado varias veces, no seguir intentando
-          if (!uploadError.message?.includes('400') || uploadAttempts >= maxAttempts) {
+          if (!(uploadError && uploadError.message?.includes('400')) || uploadAttempts >= maxAttempts) {
             break
           }
           
@@ -275,7 +298,10 @@ export const useAvatarStorage = () => {
           await new Promise(resolve => setTimeout(resolve, 1000))
         } catch (err) {
           console.error(`Error inesperado en intento ${uploadAttempts}:`, err)
-          uploadError = err
+          uploadError = {
+            message: err instanceof Error ? err.message : String(err),
+            originalError: err
+          }
           break
         }
       }
@@ -377,15 +403,17 @@ export const useAvatarStorage = () => {
 
       // Si todavía hay error después de intentar todos los métodos
       if (uploadError) {
-        throw new Error(`Error al subir la imagen: ${typeof uploadError === 'object' && 'message' in uploadError ? uploadError.message : String(uploadError)}`)
+        throw new Error(`Error al subir la imagen: ${uploadError && typeof uploadError === 'object' && 'message' in uploadError ? (uploadError as StorageError).message : String(uploadError)}`)
       }
 
       console.log('Obteniendo URL pública...')
       
       // Obtener la URL pública
-      const { data } = supabase.storage
+      const response = supabase.storage
         .from(BUCKET_NAME)
-        .getPublicUrl(filename)
+        .getPublicUrl(filename) as SupabaseStoragePublicUrlResponse
+        
+      const { data } = response
         
       if (!data || !data.publicUrl) {
         throw new Error('No se pudo obtener la URL de la imagen')

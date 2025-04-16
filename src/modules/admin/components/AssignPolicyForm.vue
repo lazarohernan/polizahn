@@ -366,6 +366,7 @@
 <script setup lang="ts">
   import { ref, computed, watch, onMounted } from 'vue';
   import { User, Mail, Hash } from 'lucide-vue-next';
+  import { supabase } from '@/lib/supabase';
   import { Cliente } from '../interfaces/cliente_interface';
   import type { Database } from '@/lib/supabase';
   import { usePlanDePago } from '@/composables/usePlanDePago';
@@ -419,8 +420,8 @@
 
   // Composables
   const { getPlanDePago, createPlanDePago, updatePlanDePago } = usePlanDePago();
-  const { getPolizas } = usePolizas();
-  const { uploadFile: uploadStorageFile } = useStorage();
+  const { getPolizas, loading: polizasLoading, error: polizasError } = usePolizas();
+  const { loading: storageLoading, error: storageError } = useStorage();
 
   //Validación de los tipos de archivo en póliza
   const fileError = ref('');
@@ -489,11 +490,12 @@
 
   onMounted(async () => {
     try {
-      const { data: polizasData } = await getPolizas(idCorreduria ?? '');
-      if (polizasData) {
-        polizas.value = polizasData;
+      const response = await getPolizas();
+      if (!response.ok) {
+        console.error('Error al cargar pólizas:', response.message);
+        return;
       }
-
+      polizas.value = response.data || [];
       if (props.mode === 'view' && props.planDePagoId) {
         try {
           const { data: planData } = await getPlanDePago(props.planDePagoId);
@@ -698,9 +700,39 @@
     }
   };
 
+  interface StorageResponse {
+    data: { publicUrl: string }
+    error: Error | null
+  }
+
   const uploadFile = async (file: File): Promise<string> => {
     try {
-      return await uploadStorageFile(file, 'polizas', 'archivos');
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!user) throw new Error('Usuario no autenticado');
+      
+      const fileExt = file.name.split('.').pop();
+      if (!fileExt) throw new Error('No se pudo obtener la extensión del archivo');
+      
+      const fileName = `polizas/${crypto.randomUUID()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('archivos')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      const response = supabase.storage
+        .from('archivos')
+        .getPublicUrl(fileName) as StorageResponse;
+      
+      if (response.error) throw response.error;
+      if (!response.data?.publicUrl) throw new Error('No se pudo obtener la URL pública del archivo');
+      
+      return response.data.publicUrl;
     } catch (error) {
       console.error('Error al subir el archivo:', error);
       throw error;

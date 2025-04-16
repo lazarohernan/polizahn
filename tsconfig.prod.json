@@ -4,16 +4,23 @@
     "skipLibCheck": true,
     "noEmit": true,
     "strict": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
+    
+    /* Habilitar gradualmente las comprobaciones estrictas */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "noImplicitAny": false,
-    "noImplicitThis": false,
-    "strictNullChecks": false,
-    "strictFunctionTypes": false,
-    "strictBindCallApply": false,
+    "noImplicitThis": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
     "strictPropertyInitialization": false,
-    "alwaysStrict": false,
+    "alwaysStrict": true,
+    
+    /* Otras opciones útiles */
     "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
   }
-} 
+}

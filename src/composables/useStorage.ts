@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
+import { SupabaseStorageUploadResponse, SupabaseStoragePublicUrlResponse, SupabaseError } from '@/types/supabase-responses'
 
 const BUCKET_NAME = 'logos'
 const LOGOS_PATH = 'aseguradoras'
@@ -103,12 +104,14 @@ export const useStorage = () => {
       }
 
       // Subir nuevo logo
-      const { error: uploadError } = await supabase.storage
+      const uploadResult: SupabaseStorageUploadResponse = await supabase.storage
         .from(BUCKET_NAME)
         .upload(fileName, file, {
           cacheControl: '3600',
           upsert: true
         })
+      
+      const { error: uploadError } = uploadResult
 
       if (uploadError) {
         if (uploadError.message.includes('Permission denied')) {
@@ -117,13 +120,15 @@ export const useStorage = () => {
         throw uploadError
       }
 
-      const { data: publicUrl } = supabase.storage
+      const publicUrlResult: SupabaseStoragePublicUrlResponse = supabase.storage
         .from(BUCKET_NAME)
         .getPublicUrl(fileName)
+      
+      const { data: publicUrl } = publicUrlResult
 
       return publicUrl.publicUrl
     } catch (err) {
-      error.value = (err as Error).message
+      error.value = err instanceof Error ? err.message : String(err)
       throw err
     } finally {
       loading.value = false

@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import type { Database } from '@/lib/supabase'
+import { ApiResponse } from '@/types/supabase-responses'
 
 // Tipos base de la base de datos
 type BasePoliza = Database['public']['Tables']['polizas']['Row']
@@ -12,12 +13,8 @@ export interface Poliza extends BasePoliza {
   nombre_aseguradora?: string
 }
 
-// Tipo para las respuestas de las funciones
-export interface PolizaResponse<T> {
-  ok: boolean
-  data: T
-  message: string
-}
+// Usar la interfaz ApiResponse genérica para respuestas consistentes
+export type PolizaResponse<T> = ApiResponse<T>
 
 export function usePolizas() {
   const loading = ref(false)
@@ -36,7 +33,7 @@ export function usePolizas() {
       }
 
       // Transformar los datos para incluir nombre_aseguradora
-      const polizasTransformed = polizasData.map(poliza => {
+      const polizasTransformed = (polizasData || []).map(poliza => {
         const { aseguradoras, ...polizaBase } = poliza
         return {
           ...polizaBase,
