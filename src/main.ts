@@ -66,6 +66,13 @@ app.use(Toast, {
 
 // Inicializar el store de autenticación
 const authStore = useAuthStore();
-await authStore.initialize();
 
-app.mount('#app');
+// Inicializar la aplicación sin usar top-level await
+authStore.initialize().then(() => {
+  // Montar la aplicación una vez que la autenticación esté inicializada
+  app.mount('#app');
+}).catch(error => {
+  console.error('Error al inicializar la autenticación:', error);
+  // Montar la aplicación de todos modos para permitir la recuperación
+  app.mount('#app');
+});

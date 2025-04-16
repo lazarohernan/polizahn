@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit false --project tsconfig.prod.json && vite build --emptyOutDir",
+    "build": "vite build --emptyOutDir",
     "build:type-check": "vue-tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest",
