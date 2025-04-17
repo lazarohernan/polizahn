@@ -27,6 +27,7 @@ export const useClientes = () => {
       const to = from + limit - 1
 
       console.log("Obteniendo clientes con parámetros:", { page, limit, from, to })
+      console.log("ID Correduría (para RLS):", authStore.id_correduria)
 
       // Consulta modificada para obtener todos los clientes sin filtrar por correduría
       // La política RLS se encargará de filtrar según los permisos del usuario

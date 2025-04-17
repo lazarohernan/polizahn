@@ -425,6 +425,11 @@
   import type { Database } from '@/lib/supabase';
   import { useAuthStore } from '@/stores/auth.store';
 
+  // Definir interfaz para el cliente editable
+  interface EditableClient extends Omit<Database['public']['Tables']['clientes']['Row'], 'dob'> {
+    dob: string | Date | null;
+  }
+
   const props = defineProps<{
     show: boolean;
     client: Database['public']['Tables']['clientes']['Row'] | null;
@@ -455,7 +460,7 @@
   const isEditing = ref(false);
   const hasChanges = ref(false);
   const isLoading = ref(false);
-  const editedClient = ref<Database['public']['Tables']['clientes']['Row'] | null>(null);
+  const editedClient = ref<EditableClient | null>(null);
 
   // Inicialización segura del cliente
   const initializeClient = async () => {
@@ -627,8 +632,7 @@
   const handleDateInput = (e: Event) => {
     if (!editedClient.value) return;
     const input = e.target as HTMLInputElement;
-    // Establecer como string y dejar que el composable haga la conversión
-    (editedClient.value as any).dob = input.value;
+    editedClient.value.dob = input.value;
     hasChanges.value = true;
   };
 
@@ -704,7 +708,7 @@
         empresa: editedClient.value.empresa || null,
         tel_1: editedClient.value.tel_1 || null,
         tel_2: editedClient.value.tel_2 || null,
-        dob: editedClient.value.dob,
+        dob: typeof editedClient.value.dob === 'string' ? new Date(editedClient.value.dob) : editedClient.value.dob,
         modificado_por: currentUser?.id || null,
       };
 

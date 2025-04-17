@@ -80,7 +80,7 @@
             <p class="text-red-600 dark:text-red-400">{{ error }}</p>
           </div>
           <!-- Tabla -->
-          <div v-else-if="filteredItems.length > 0" class="overflow-auto">
+          <div v-else-if="displayItems.length > 0" class="overflow-auto">
             <table class="min-w-full">
               <thead class="sticky top-0 z-10 bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm">
                 <tr>
@@ -93,7 +93,7 @@
               </thead>
               <tbody>
                 <tr
-                  v-for="(client, index) in filteredItems"
+                  v-for="(client, index) in displayItems"
                   :key="client.id_cliente"
                   class="border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-150"
                   :class="{ 'bg-gray-50/50 dark:bg-gray-800/30': index % 2 === 0 }"
@@ -147,31 +147,36 @@
                   <!-- Acciones -->
                   <td class="px-6 py-4 whitespace-nowrap text-center">
                     <div class="flex items-center justify-center space-x-2">
-                      <PermissionWrapper requires="clientes_read">
+                      <PermissionWrapper requires="clientes_view">
                         <button
-                          @click="handleViewClient(client.id_cliente)"
-                          class="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                          title="Ver detalles"
+                          class="text-blue-600 hover:text-blue-900 mr-2 focus:outline-none"
+                          @click="() => toClienteDetails(client.id_cliente)"
                         >
-                          <Eye class="w-5 h-5" />
+                          <Eye class="h-5 w-5" aria-hidden="true" />
                         </button>
                       </PermissionWrapper>
-                      <PermissionWrapper requires="clientes_update">
+                      <PermissionWrapper requires="clientes_edit">
                         <button
-                          @click="handleEditClient(client.id_cliente)"
-                          class="p-2 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
-                          title="Editar cliente"
+                          class="text-indigo-600 hover:text-indigo-900 mr-2 focus:outline-none"
+                          @click="() => toEditClient(client)"
                         >
-                          <Edit class="w-5 h-5" />
+                          <Edit class="h-5 w-5" aria-hidden="true" />
+                        </button>
+                      </PermissionWrapper>
+                      <PermissionWrapper requires="clientes_view">
+                        <button
+                          class="text-green-600 hover:text-green-900 focus:outline-none mr-2"
+                          @click="showClientPolizas(client.id_cliente)"
+                        >
+                          <FileText class="h-5 w-5" aria-hidden="true" />
                         </button>
                       </PermissionWrapper>
                       <PermissionWrapper requires="clientes_delete">
                         <button
+                          class="text-red-600 hover:text-red-900 focus:outline-none"
                           @click="confirmDelete(client)"
-                          class="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                          title="Eliminar cliente"
                         >
-                          <Trash class="w-5 h-5" />
+                          <Trash class="h-5 w-5" aria-hidden="true" />
                         </button>
                       </PermissionWrapper>
                     </div>
@@ -181,12 +186,22 @@
             </table>
           </div>
           <!-- No hay resultados -->
-          <div v-else class="p-12 text-center">
-            <UserX class="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-            <p class="text-gray-500 dark:text-gray-400 mb-2">No se encontraron clientes</p>
-            <p v-if="searchQuery" class="text-sm text-gray-400 dark:text-gray-500">
+          <div v-else-if="searchQuery && displayItems.length === 0 && !loading" class="p-12 text-center">
+            <Search class="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+            <p class="text-gray-500 dark:text-gray-400 mb-2">No se encontraron clientes para "{{ searchQuery }}"</p>
+            <p class="text-sm text-gray-400 dark:text-gray-500">
               Intenta con otros términos de búsqueda
             </p>
+          </div>
+          <div v-else-if="!searchQuery && displayItems.length === 0 && !loading" class="p-12 text-center">
+            <UserX class="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+            <p class="text-gray-500 dark:text-gray-400 mb-2">Aún no hay clientes registrados</p>
+            <PermissionWrapper requires="clientes_create">
+                <button 
+                  class="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors"
+                  @click="openAddClientModal"
+                >Nuevo Cliente</button>
+            </PermissionWrapper>
           </div>
         </div>
       </div>
@@ -241,13 +256,12 @@
   import { useUsuarios } from '@/composables/useUsuarios';
   import type { Database } from '@/lib/supabase';
   import SearchBar from '@/modules/common/components/SearchBar.vue';
-  import PaginationButtons from '@/modules/common/components/PaginationButtons.vue';
   import ViewClientModal from '@/modules/admin/components/ViewClientModal.vue';
   import AddClientModal from '@/modules/admin/components/AddClientModal.vue';
   import ViewClientPolicyModal from '@/modules/admin/components/ViewClientPolicyModal.vue';
   import ViewClientPaymentsModal from '@/modules/admin/components/ViewClientPaymentsModal.vue';
   import PermissionWrapper from '@/components/PermissionWrapper.vue';
-  import { Plus, Mail, Phone, MapPin, Eye, FileText, Users, Search, Edit, Trash, UserX, AlertCircle, Loader } from 'lucide-vue-next';
+  import { Plus, Mail, Phone, Eye, FileText, Users, Search, Edit, Trash, UserX, AlertCircle, Loader } from 'lucide-vue-next';
   import { useToast } from 'vue-toastification';
   import { useAuthStore } from '@/stores/auth.store';
   import { storeToRefs } from 'pinia';
@@ -299,8 +313,6 @@
   const currentUser = authStore.user;
   const {
     searchClients,
-    loading: searchLoading,
-    error: searchError,
     filteredItems,
   } = useSearchClients();
   const { getUsuariosPorCorreduria } = useUsuarios();
@@ -400,9 +412,9 @@
       tel_2: clienteDB.tel_2 || null,
       empresa: clienteDB.empresa || null,
       dob: clienteDB.dob || null,
-      fecha_creado: clienteDB.fecha_creado,
+      fecha_creado: clienteDB.fecha_creado ? new Date(clienteDB.fecha_creado) : null,
       creado_por: clienteDB.creado_por,
-      fecha_modificado: clienteDB.fecha_modificado,
+      fecha_modificado: clienteDB.fecha_modificado ? new Date(clienteDB.fecha_modificado) : null,
       modificado_por: clienteDB.modificado_por,
       foto: clienteDBExt.foto || null,
       direccion: clienteDBExt.direccion || null,
@@ -412,12 +424,20 @@
     };
   };
 
+  // NUEVA PROPIEDAD COMPUTADA
+  const displayItems = computed(() => {
+    if (searchQuery.value && searchQuery.value.length >= 2) {
+      return filteredItems.value;
+    }
+    return clientes.value;
+  });
+
   // Watch para la búsqueda
   watch(searchQuery, async (newQuery) => {
     if (newQuery.length >= 2) {
       // searchClients devuelve ClienteInterface[], necesitamos convertirlos
       await searchClients(newQuery, id_correduria.value);
-      // Asegurar que el map no devuelva nulls si convertClienteDBToCliente falla
+      // Asegurarnos de que el map no devuelva nulls si convertClienteDBToCliente falla
       clientes.value = filteredItems.value
         .map((cliInterface) => convertClienteDBToCliente(cliInterface as unknown as ClienteDB))
         .filter((cliente): cliente is Cliente => cliente !== null);
@@ -520,10 +540,6 @@
       .toUpperCase();
   };
 
-  const getImageSrc = (foto: string): string => {
-    return foto.startsWith('http') ? foto : `/uploads/${foto}`;
-  };
-
   // Methods - Navegación
   const openAddClientModal = () => {
     if (!permissions.hasPermission('clientes_create') && !permissions.isSuperAdmin.value) {
@@ -533,22 +549,28 @@
     router.push({ name: 'cliente-nuevo' });
   };
 
-  const handleViewClient = (id: string) => {
+  const toClienteDetails = (id: string) => {
     if (!permissions.hasPermission('clientes_view') && !permissions.isSuperAdmin.value) {
       toast.error('No tienes permiso para ver detalles de clientes');
       return;
     }
-
-    router.push({ name: 'cliente-detalles', params: { id } });
+    router.push(`/admin/clientes/${id}/details`);
   };
 
-  const handleEditClient = (id: string) => {
+  const toEditClient = (client: Cliente) => {
     if (!permissions.hasPermission('clientes_edit') && !permissions.isSuperAdmin.value) {
       toast.error('No tienes permiso para editar clientes');
       return;
     }
+    router.push(`/admin/clientes/${client.id_cliente}/edit`);
+  };
 
-    router.push({ name: 'cliente-detalles', params: { id } });
+  const showClientPolizas = (id: string) => {
+    if (!permissions.hasPermission('clientes_view') && !permissions.isSuperAdmin.value) {
+      toast.error('No tienes permiso para ver las pólizas');
+      return;
+    }
+    router.push({ name: 'cliente-polizas', params: { id } });
   };
 
   const confirmDelete = (client: Cliente) => {
@@ -695,19 +717,6 @@
     }
   };
 
-  const handlePageChange = (newPage: number) => {
-    paginaActual.value = newPage;
-    loadClientes();
-    // Scroll hacia arriba
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleItemsPerPageChange = (newValue: number) => {
-    limite.value = newValue;
-    paginaActual.value = 1; // Resetear a primera página cuando cambia el límite
-    loadClientes();
-  };
-
   // Cargar datos iniciales
   onMounted(async () => {
     console.log('[onMounted] Hook ejecutado.');
@@ -753,14 +762,6 @@
       console.error('Error al cargar usuarios:', error);
     }
   };
-
-  // Calcular elementos paginados
-  const paginatedItems = computed(() => {
-    if (searchQuery.value && searchQuery.value.length >= 2) {
-      return filteredItems.value;
-    }
-    return clientes.value;
-  });
 
   // Funciones de formato de fecha
   function formatDate(dateString) {
