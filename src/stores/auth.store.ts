@@ -4,6 +4,13 @@ import { supabase } from '@/lib/supabase'
 import type { User, AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { useToast } from 'vue-toastification'
 
+// Función helper para logs condicionales
+const devLog = (message: string, ...args: unknown[]) => {
+  if (import.meta.env.DEV) {
+    console.log(message, ...args);
+  }
+};
+
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const loading = ref(true)
@@ -22,7 +29,7 @@ export const useAuthStore = defineStore('auth', () => {
       const storedIdCorreduria = localStorage.getItem('id_correduria')
       
       if (storedIdCorreduria) {
-        console.log('✅ Se obtuvo id_correduria del localStorage:', storedIdCorreduria)
+        devLog('✅ Se obtuvo id_correduria del localStorage:', storedIdCorreduria)
         return storedIdCorreduria
       }
       
@@ -37,7 +44,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Si no se encuentra ningún registro, esto no es un error técnico
       // simplemente significa que el usuario no tiene corredurías asignadas
       if (error && error.code !== 'PGRST116') {
-        console.error('❌ Error al obtener correduría:', error.message)
+        devLog('❌ Error al obtener correduría:', error.message)
         throw new Error(`Error técnico al obtener correduría: ${error.message}`)
       }
       
@@ -45,7 +52,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (data && data.length > 0) {
         // Tomamos el primer registro que cumpla los criterios
         const correduriId = data[0].id_correduria
-        console.log('✅ Se obtuvo id_correduria de la base de datos:', correduriId)
+        devLog('✅ Se obtuvo id_correduria de la base de datos:', correduriId)
         
         if (correduriId) {
           // Guardar en localStorage para futuros accesos
@@ -56,7 +63,7 @@ export const useAuthStore = defineStore('auth', () => {
       
       throw new Error('No se encontró una correduría asociada al usuario')
     } catch (error) {
-      console.error('❌ Error en fetchUserCorreduria:', error)
+      devLog('❌ Error en fetchUserCorreduria:', error)
       // Propagar el error para manejarlo en la capa superior
       throw error
     }
@@ -75,7 +82,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Establecer listener para cambios de sesión
       await supabase.auth.onAuthStateChange(
         async (event: AuthChangeEvent, session: Session | null) => {
-          console.log(`🔄 Cambio en autenticación: ${event}`, session?.user?.email)
+          devLog(`🔄 Cambio en autenticación: ${event}`, session?.user?.email)
           user.value = session?.user ?? null
           
           if (event === 'SIGNED_OUT') {
@@ -86,7 +93,7 @@ export const useAuthStore = defineStore('auth', () => {
               const userCorreduriaId = await fetchUserCorreduria(session.user.id)
               id_correduria.value = userCorreduriaId
             } catch (error) {
-              console.error('❌ Error al obtener correduría después del login:', error)
+              devLog('❌ Error al obtener correduría después del login:', error)
               toast.error('No se pudo acceder a la información de su correduría')
               id_correduria.value = ''
             }
@@ -100,12 +107,12 @@ export const useAuthStore = defineStore('auth', () => {
           const userCorreduriaId = await fetchUserCorreduria(user.value.id)
           id_correduria.value = userCorreduriaId
         } catch (error) {
-          console.warn('⚠️ No se pudo obtener la correduría durante la inicialización:', error)
+          devLog('⚠️ No se pudo obtener la correduría durante la inicialización:', error)
           // No mostramos toast aquí para evitar mensajes durante la carga inicial
         }
       }
     } catch (error) {
-      console.error('Error initializing auth:', error)
+      devLog('Error initializing auth:', error)
     } finally {
       loading.value = false
     }
@@ -128,7 +135,7 @@ export const useAuthStore = defineStore('auth', () => {
       
       // Manejar errores excepto cuando es un error de "no registros"
       if (error && error.code !== 'PGRST116') {
-        console.error('❌ Error técnico al obtener perfil:', error)
+        devLog('❌ Error técnico al obtener perfil:', error)
         throw error
       }
       
@@ -139,15 +146,15 @@ export const useAuthStore = defineStore('auth', () => {
         if (firstProfile.id_correduria) {
           id_correduria.value = firstProfile.id_correduria
           localStorage.setItem('id_correduria', firstProfile.id_correduria)
-          console.log('✅ Perfil de usuario actualizado con id_correduria:', firstProfile.id_correduria)
+          devLog('✅ Perfil de usuario actualizado con id_correduria:', firstProfile.id_correduria)
         }
         return firstProfile
       }
       
-      console.warn('⚠️ No se encontraron perfiles para este usuario')
+      devLog('⚠️ No se encontraron perfiles para este usuario')
       return null
     } catch (error) {
-      console.error('❌ Error al obtener perfil de usuario:', error)
+      devLog('❌ Error al obtener perfil de usuario:', error)
       return null
     }
   }
@@ -159,9 +166,9 @@ export const useAuthStore = defineStore('auth', () => {
     if (id) {
       id_correduria.value = id
       localStorage.setItem('id_correduria', id)
-      console.log('✅ ID de correduría actualizado:', id)
+      devLog('✅ ID de correduría actualizado:', id)
     } else {
-      console.warn('⚠️ Intento de actualizar correduría con ID vacío')
+      devLog('⚠️ Intento de actualizar correduría con ID vacío')
     }
   }
 

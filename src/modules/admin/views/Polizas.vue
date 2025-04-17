@@ -14,14 +14,14 @@
               />
             </div>
             <div class="flex gap-4">
-              <!-- Este botón lo verá solo el superadmin -->
-              <PermissionWrapper superadminOnly>
+              <!-- Botón de Agregar Póliza -->
+              <PermissionWrapper :requires="'polizas_create'">
                 <button
-                  @click="exportarTodas"
-                  class="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-700 text-white hover:bg-gray-800"
+                  @click="showAddModal = true"
+                  class="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-white hover:bg-primary/90"
                 >
-                  <DownloadIcon class="w-4 h-4" />
-                  <span>Exportar Todas</span>
+                  <Plus class="w-4 h-4" />
+                  <span>Agregar Póliza</span>
                 </button>
               </PermissionWrapper>
             </div>
@@ -142,7 +142,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import { Shield, Search, DownloadIcon } from 'lucide-vue-next';
+import { Shield, Search, Plus } from 'lucide-vue-next';
 import AddPolicyModal from '@/modules/admin/components/AddPolicyModal.vue';
 import ViewPolicyModal from '@/modules/admin/components/ViewPolicyModal.vue';
 import SearchBar from '@/modules/common/components/SearchBar.vue';
@@ -252,15 +252,4 @@ const filteredPolicies = computed(() => {
 });
 
 const getPolicyIcon = () => Shield;
-
-// Función que solo el superadmin puede usar
-const exportarTodas = () => {
-  if (!permissions.isSuperAdmin.value) {
-    toast.error('No tienes permisos para realizar esta acción');
-    return;
-  }
-  
-  // Código para exportar todas las pólizas
-  toast.success('Exportando todas las pólizas');
-};
 </script>

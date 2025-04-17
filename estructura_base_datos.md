@@ -133,3 +133,5 @@ Esta estructura permite:
 - La tabla `usuarios_corredurias` solo se usa para usuarios administrativos (roles 1, 2, 3).
 - Los clientes no se registran en `usuarios_corredurias` sino que se vinculan directamente a través de `clientes` y `clientes_por_correduria`.
 - Se evita la duplicación de datos entre `auth.users`, `perfiles` y `clientes`. 
+
+

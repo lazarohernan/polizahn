@@ -8,50 +8,78 @@
     >
       <!-- Contenedor del modal -->
       <div
-        class="w-full max-w-[800px] max-h-[calc(100vh-3rem)] overflow-y-auto bg-background rounded-3xl border border-container-border shadow-[0_8px_32px_rgba(0,0,0,0.2)] transition-transform duration-300 sm:rounded-2xl"
+        class="w-full h-[90vh] md:h-auto md:max-h-[90vh] md:w-[90%] lg:w-[700px] overflow-y-auto bg-background rounded-t-[2rem] md:rounded-[2rem] border border-container-border shadow-[0_8px_32px_rgba(0,0,0,0.2)] transition-colors duration-200"
         @click.stop
       >
-        <!-- Encabezado del modal -->
+        <!-- Encabezado -->
         <div
-          class="sticky top-0 z-10 px-6 py-4 border-b border-container-border flex items-center justify-between bg-background/80 backdrop-blur-xl"
+          class="sticky top-0 z-10 p-5 border-b border-container-border bg-background/80 backdrop-blur-xl"
         >
-          <div class="flex items-center gap-3">
-            <div class="p-2 rounded-xl bg-primary/10">
-              <User class="w-5 h-5 text-primary" />
+          <div class="flex items-center justify-between gap-3 md:gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <User class="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h2 class="text-xl font-semibold text-text dark:text-white m-0">
+                  Información del Cliente
+                </h2>
+                <p class="text-sm text-text/60 dark:text-gray-400 mt-0.5 m-0">
+                  Información detallada del cliente
+                </p>
+              </div>
             </div>
-            <div class="flex items-center gap-4">
-              <h2 class="text-xl font-semibold text-text">Detalles del Cliente</h2>
-              <button
-                class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 bg-gray-100 text-primary text-sm font-medium transition-all duration-300 hover:bg-primary hover:text-white hover:-translate-y-0.5"
-                @click="isEditing = !isEditing"
-              >
-                <Pencil class="w-4 h-4" />
-                <span>{{ isEditing ? 'Cancelar' : 'Editar' }}</span>
-              </button>
-            </div>
+            <button
+              class="p-2.5 rounded-xl border-none bg-input-bg dark:bg-gray-800 text-text dark:text-white cursor-pointer transition-all duration-300 hover:bg-primary hover:text-white hover:-translate-y-0.5 hover:shadow-lg flex items-center justify-center"
+              @click="handleClose"
+            >
+              <X class="w-5 h-5" />
+            </button>
           </div>
-          <button
-            class="p-2 rounded-lg hover:bg-input-bg text-text/70 transition-all duration-300 hover:text-text hover:-translate-y-0.5"
-            @click="handleClose"
-          >
-            <X class="w-5 h-5" />
-          </button>
         </div>
 
-        <!-- Cuerpo del modal -->
-        <div class="p-6">
-          <!-- Perfil del cliente -->
-          <div class="flex items-start gap-6">
-            <!-- Información del cliente -->
-            <div class="flex-1 min-w-0">
-              <div class="flex flex-col gap-3">
-                <div class="flex items-center gap-3">
-                  <!-- EN EDICIÓN -->
-                  <template v-if="isEditing">
-                    <div class="flex gap-2">
+        <!-- Cuerpo -->
+        <div class="p-5">
+          <div class="flex flex-col gap-4">
+            <!-- Información Personal -->
+            <div
+              class="bg-input-bg/50 dark:bg-gray-800/50 border border-input-border dark:border-gray-700 rounded-xl md:rounded-2xl p-3 md:p-4 transition-all duration-300 hover:bg-input-bg dark:hover:bg-gray-800/80"
+            >
+              <div class="flex items-center gap-2 md:gap-3 mb-3">
+                <User class="w-4 h-4 md:w-5 md:h-5 text-primary" />
+                <div>
+                  <h3 class="text-sm md:text-base font-medium text-text dark:text-white m-0">
+                    Información Personal
+                  </h3>
+                  <p class="text-xs text-text/60 dark:text-gray-400 m-0">
+                    Datos básicos del cliente
+                  </p>
+                </div>
+              </div>
+
+              <!-- Avatar con iniciales -->
+              <div class="flex items-start mb-4">
+                <div
+                  v-if="editedClient"
+                  class="w-20 h-20 rounded-lg flex items-center justify-center bg-[#8CBFCF] text-white font-bold text-2xl shadow-md"
+                  :title="editedClient.nombres"
+                >
+                  {{ getInitials(editedClient.nombres) }}
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Nombres -->
+                <div class="flex items-start gap-3">
+                  <Type class="w-5 h-5 text-primary/70" />
+                  <div class="flex-1 min-w-0">
+                    <label class="block text-xs font-medium text-text/70 dark:text-gray-400 mb-1"
+                      >Nombres</label
+                    >
+                    <template v-if="isEditing">
                       <input
                         type="text"
-                        class="px-3 py-1.5 rounded-lg border border-input-border bg-background text-text text-sm transition-all duration-300 hover:border-primary/30 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
+                        class="w-full px-3 py-1.5 rounded-lg border border-input-border dark:border-gray-700 bg-background dark:bg-gray-800/50 text-text dark:text-white text-sm transition-all duration-300 hover:border-primary dark:hover:border-primary focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
                         placeholder="Nombres"
                         :value="nameParts.firstName"
                         @input="
@@ -59,297 +87,232 @@
                         "
                         @keypress="onlyLetters"
                       />
+                    </template>
+                    <template v-else>
+                      <p class="text-sm text-text dark:text-white break-words">
+                        {{ nameParts.firstName }}
+                      </p>
+                    </template>
+                  </div>
+                </div>
+
+                <!-- Apellidos -->
+                <div class="flex items-start gap-3">
+                  <Type class="w-5 h-5 text-primary/70" />
+                  <div class="flex-1 min-w-0">
+                    <label class="block text-xs font-medium text-text/70 dark:text-gray-400 mb-1"
+                      >Apellidos</label
+                    >
+                    <template v-if="isEditing">
                       <input
                         type="text"
-                        class="px-3 py-1.5 rounded-lg border border-input-border bg-background text-text text-sm transition-all duration-300 hover:border-primary/30 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
+                        class="w-full px-3 py-1.5 rounded-lg border border-input-border dark:border-gray-700 bg-background dark:bg-gray-800/50 text-text dark:text-white text-sm transition-all duration-300 hover:border-primary dark:hover:border-primary focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
                         placeholder="Apellidos"
                         :value="nameParts.lastName"
                         @input="(e) => updateName('lastName', (e.target as HTMLInputElement).value)"
                         @keypress="onlyLetters"
                       />
-                    </div>
-                  </template>
-
-                  <!-- EN VIEW -->
-                  <template v-else>
-                    <h3 class="text-xl font-semibold text-text">
-                      {{ editedClient.nombres + ' ' + editedClient.apellidos }}
-                    </h3>
-                  </template>
-                  <!-- <span
-                    class="inline-flex px-3 py-1 rounded-full text-xs font-medium shadow-sm transition-all duration-300"
-                    :class="
-                      editedClient.estado === 'active'
-                        ? 'bg-emerald-500 text-white'
-                        : 'bg-red-500 text-white'
-                    "
-                  >
-                    {{ editedClient.status === 'active' ? 'Activo' : 'Inactivo' }}
-                  </span> TODO: tendrá estatus de AL DÍA | MOROSO | OTROS -->
-                </div>
-                <div
-                  class="inline-flex items-center px-3 py-1.5 bg-input-bg border border-input-border rounded-lg font-mono text-sm text-text/90"
-                >
-                  {{
-                    editedClient?.identificacion && editedClient.identificacion.length === 14
-                      ? `RTN: ${editedClient.identificacion}`
-                      : `DNI: ${editedClient.identificacion || 'No especificado'}`
-                  }}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Separador -->
-          <div class="h-px bg-container-border my-6"></div>
-
-          <!-- Grid de información -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- DNI -->
-            <div
-              class="group flex items-start gap-3 p-4 bg-input-bg border border-input-border rounded-xl transition-all duration-300 hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5"
-            >
-              <CreditCard class="w-5 h-5 text-primary/70" />
-              <div class="flex-1 min-w-0">
-                <label class="block text-xs font-medium text-text/70 mb-1">{{
-                  editedClient.identificacion.length === 14 ? 'RTN' : 'DNI'
-                }}</label>
-                <template v-if="isEditing">
-                  <input
-                    v-model="editedClient.identificacion"
-                    type="text"
-                    maxlength="13"
-                    class="w-full px-3 py-1.5 rounded-lg border border-input-border bg-background text-text text-sm transition-all duration-300 hover:border-primary/30 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
-                    @keypress="onlyNumbers"
-                  />
-                </template>
-                <template v-else>
-                  <p class="text-sm text-text break-words font-mono">
-                    {{ editedClient.identificacion }}
-                  </p>
-                </template>
-              </div>
-            </div>
-
-            <!-- Email -->
-            <div
-              class="group flex items-start gap-3 p-4 bg-input-bg border border-input-border rounded-xl transition-all duration-300 hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5"
-            >
-              <Mail class="w-5 h-5 text-primary/70" />
-              <div class="flex-1 min-w-0">
-                <label class="block text-xs font-medium text-text/70 mb-1"
-                  >Correo Electrónico</label
-                >
-                <template v-if="isEditing">
-                  <input
-                    v-model="editedClient.correo"
-                    type="email"
-                    class="w-full px-3 py-1.5 rounded-lg border border-input-border bg-background text-text text-sm transition-all duration-300 hover:border-primary/30 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
-                  />
-                </template>
-                <template v-else>
-                  <p class="text-sm text-text break-words">{{ editedClient.correo }}</p>
-                </template>
-              </div>
-            </div>
-
-            <!-- Fecha de Nacimiento -->
-            <div
-              class="group flex items-start gap-3 p-4 bg-input-bg border border-input-border rounded-xl transition-all duration-300 hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5"
-            >
-              <Calendar class="w-5 h-5 text-primary/70" />
-              <div class="flex-1 min-w-0">
-                <label class="block text-xs font-medium text-text/70 mb-1"
-                  >Fecha de Nacimiento</label
-                >
-                <template v-if="isEditing">
-                  <input
-                    v-model="dobFormatted"
-                    type="date"
-                    class="w-full px-3 py-1.5 rounded-lg border border-input-border bg-background text-text text-sm transition-all duration-300 hover:border-primary/30 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
-                    @change="validateBirthDate"
-                  />
-                </template>
-                <template v-else>
-                  <p class="text-sm text-text break-words">
-                    {{ editedClient.dob ? formatDate(editedClient.dob.toString()) : 'No especificada' }}
-                  </p>
-                </template>
-              </div>
-            </div>
-
-            <!-- Empresa -->
-            <div
-              class="group flex items-start gap-3 p-4 bg-input-bg border border-input-border rounded-xl transition-all duration-300 hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5"
-            >
-              <Building2 class="w-5 h-5 text-primary/70" />
-              <div class="flex-1 min-w-0">
-                <label class="block text-xs font-medium text-text/70 mb-1">Empresa</label>
-                <template v-if="isEditing">
-                  <input
-                    v-model="editedClient.empresa"
-                    type="text"
-                    class="w-full px-3 py-1.5 rounded-lg border border-input-border bg-background text-text text-sm transition-all duration-300 hover:border-primary/30 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
-                  />
-                </template>
-                <template v-else>
-                  <p class="text-sm text-text break-words">{{ editedClient.empresa || 'N/A' }}</p>
-                </template>
-              </div>
-            </div>
-
-            <!-- Teléfonos -->
-            <div class="grid grid-cols-2 gap-4 md:col-span-2">
-              <!-- Teléfono Principal -->
-              <div
-                class="group flex items-start gap-3 p-4 bg-input-bg border border-input-border rounded-xl transition-all duration-300 hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5"
-              >
-                <Phone class="w-5 h-5 text-primary/70" />
-                <div class="flex-1 min-w-0">
-                  <label class="block text-xs font-medium text-text/70 mb-1"
-                    >Teléfono Principal</label
-                  >
-                  <template v-if="isEditing">
-                    <input
-                      v-model="editedClient.tel_1"
-                      type="tel"
-                      maxlength="8"
-                      class="w-full px-3 py-1.5 rounded-lg border border-input-border bg-background text-text text-sm transition-all duration-300 hover:border-primary/30 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
-                      @keypress="onlyNumbers"
-                    />
-                  </template>
-                  <template v-else>
-                    <p class="text-sm text-text break-words">{{ editedClient.tel_1 }}</p>
-                  </template>
-                </div>
-              </div>
-
-              <!-- Teléfono Alternativo -->
-              <div
-                class="group flex items-start gap-3 p-4 bg-input-bg border border-input-border rounded-xl transition-all duration-300 hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5"
-              >
-                <Phone class="w-5 h-5 text-primary/70" />
-                <div class="flex-1 min-w-0">
-                  <label class="block text-xs font-medium text-text/70 mb-1"
-                    >Teléfono Alternativo</label
-                  >
-                  <template v-if="isEditing">
-                    <input
-                      v-model="editedClient.tel_2"
-                      type="tel"
-                      maxlength="8"
-                      class="w-full px-3 py-1.5 rounded-lg border border-input-border bg-background text-text text-sm transition-all duration-300 hover:border-primary/30 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
-                      @keypress="onlyNumbers"
-                    />
-                  </template>
-                  <template v-else>
-                    <p class="text-sm text-text break-words">
-                      {{ editedClient.tel_2 || 'N/A' }}
-                    </p>
-                  </template>
-                </div>
-              </div>
-            </div>
-
-            <!-- Dirección -->
-            <div
-              class="group flex items-start gap-3 p-4 bg-input-bg border border-input-border rounded-xl transition-all duration-300 hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5 md:col-span-2"
-            >
-              <MapPin class="w-5 h-5 text-primary/70" />
-              <div class="flex-1 min-w-0">
-                <label class="block text-xs font-medium text-text/70 mb-1">Dirección</label>
-                <template v-if="isEditing">
-                  <input
-                    v-model="editedClient.direccion"
-                    type="text"
-                    class="w-full px-3 py-1.5 rounded-lg border border-input-border bg-background text-text text-sm transition-all duration-300 hover:border-primary/30 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
-                  />
-                </template>
-                <template v-else>
-                  <p class="text-sm text-text break-words">{{ editedClient.direccion }}</p>
-                </template>
-              </div>
-            </div>
-
-            <!-- Asignar a -->
-            <div class="grid grid-cols-2 gap-4 md:col-span-2">
-              <div
-                class="group flex items-start gap-3 p-4 bg-input-bg border border-input-border rounded-xl transition-all duration-300 hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5"
-              >
-                <User class="w-5 h-5 text-primary/70" />
-                <div class="flex-1 min-w-0">
-                  <label
-                    for="usuarioAsociado"
-                    class="block text-xs font-medium text-text/70 mb-1"
-                    >{{ isEditing ? 'Asignar a' : 'Asignado a' }}</label
-                  >
-                  <template v-if="isEditing">
-                    <select
-                      id="usuarioAsociado"
-                      v-model="editedClient.id_usuario_correduria"
-                      class="w-full px-3 py-1.5 rounded-lg border border-input-border bg-background text-text text-sm transition-all duration-300 hover:border-primary/30 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
-                      required
-                    >
-                      <option value="" disabled>Seleccione un usuario...</option>
-                      <option
-                        v-for="usuario in usuarios"
-                        :key="usuario.id_usuario"
-                        :value="usuario.id_usuario"
-                      >
-                        {{ usuario.nombre }}
-                      </option>
-                    </select>
-                  </template>
-                  <template v-else>
-                    <div
-                      class="group flex items-start gap-3 p-4 bg-input-bg border border-input-border rounded-xl transition-all duration-300 hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5"
-                    >
-                      <p class="text-sm text-text break-words">
-                        {{ getUsuarioNombre(editedClient.id_usuario_correduria || '') || 'No asignado' }}
+                    </template>
+                    <template v-else>
+                      <p class="text-sm text-text dark:text-white break-words">
+                        {{ nameParts.lastName }}
                       </p>
-                    </div>
-                  </template>
+                    </template>
+                  </div>
+                </div>
+
+                <!-- Identificación -->
+                <div class="flex items-start gap-3">
+                  <CreditCard class="w-5 h-5 text-primary/70" />
+                  <div class="flex-1 min-w-0">
+                    <label class="block text-xs font-medium text-text/70 dark:text-gray-400 mb-1"
+                      >Identificación</label
+                    >
+                    <template v-if="isEditing">
+                      <input
+                        v-model="editedClient.identificacion"
+                        type="text"
+                        maxlength="14"
+                        class="w-full px-3 py-1.5 rounded-lg border border-input-border dark:border-gray-700 bg-background dark:bg-gray-800/50 text-text dark:text-white text-sm transition-all duration-300 hover:border-primary dark:hover:border-primary focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
+                        @keypress="onlyNumbers"
+                      />
+                    </template>
+                    <template v-else>
+                      <p class="text-sm text-text dark:text-white break-words">
+                        {{ editedClient.identificacion }}
+                      </p>
+                    </template>
+                  </div>
+                </div>
+
+                <!-- Fecha de Nacimiento -->
+                <div class="flex items-start gap-3">
+                  <Calendar class="w-5 h-5 text-primary/70" />
+                  <div class="flex-1 min-w-0">
+                    <label class="block text-xs font-medium text-text/70 dark:text-gray-400 mb-1"
+                      >Fecha de Nacimiento</label
+                    >
+                    <template v-if="isEditing">
+                      <input
+                        :value="editedClient.dob"
+                        type="date"
+                        class="w-full px-3 py-1.5 rounded-lg border border-input-border dark:border-gray-700 bg-background dark:bg-gray-800/50 text-text dark:text-white text-sm transition-all duration-300 hover:border-primary dark:hover:border-primary focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
+                        @input="handleDateInput"
+                      />
+                    </template>
+                    <template v-else>
+                      <p class="text-sm text-text dark:text-white break-words">
+                        {{ editedClient.dob || 'No especificada' }}
+                      </p>
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Información de Contacto -->
+            <div
+              class="bg-input-bg/50 dark:bg-gray-800/50 border border-input-border dark:border-gray-700 rounded-xl md:rounded-2xl p-3 md:p-4 transition-all duration-300 hover:bg-input-bg dark:hover:bg-gray-800/80"
+            >
+              <div class="flex items-center gap-2 md:gap-3 mb-3">
+                <Mail class="w-4 h-4 md:w-5 md:h-5 text-primary" />
+                <div>
+                  <h3 class="text-sm md:text-base font-medium text-text dark:text-white m-0">
+                    Información de Contacto
+                  </h3>
+                  <p class="text-xs text-text/60 dark:text-gray-400 m-0">
+                    Datos de contacto del cliente
+                  </p>
                 </div>
               </div>
 
-              <div class="flex items-center gap-2 justify-center">
-                <!-- Se eliminó el botón de "Cambiar Fotografía" -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Correo -->
+                <div class="flex items-start gap-3">
+                  <Mail class="w-5 h-5 text-primary/70" />
+                  <div class="flex-1 min-w-0">
+                    <label class="block text-xs font-medium text-text/70 dark:text-gray-400 mb-1"
+                      >Correo Electrónico</label
+                    >
+                    <template v-if="isEditing">
+                      <input
+                        v-model="editedClient.correo"
+                        type="email"
+                        class="w-full px-3 py-1.5 rounded-lg border border-input-border dark:border-gray-700 bg-background dark:bg-gray-800/50 text-text dark:text-white text-sm transition-all duration-300 hover:border-primary dark:hover:border-primary focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
+                      />
+                    </template>
+                    <template v-else>
+                      <p class="text-sm text-text dark:text-white break-words">
+                        {{ editedClient.correo }}
+                      </p>
+                    </template>
+                  </div>
+                </div>
+
+                <!-- Empresa -->
+                <div class="flex items-start gap-3">
+                  <Building2 class="w-5 h-5 text-primary/70" />
+                  <div class="flex-1 min-w-0">
+                    <label class="block text-xs font-medium text-text/70 dark:text-gray-400 mb-1"
+                      >Empresa</label
+                    >
+                    <template v-if="isEditing">
+                      <input
+                        v-model="editedClient.empresa"
+                        type="text"
+                        class="w-full px-3 py-1.5 rounded-lg border border-input-border dark:border-gray-700 bg-background dark:bg-gray-800/50 text-text dark:text-white text-sm transition-all duration-300 hover:border-primary dark:hover:border-primary focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
+                      />
+                    </template>
+                    <template v-else>
+                      <p class="text-sm text-text dark:text-white break-words">
+                        {{ editedClient.empresa || 'N/A' }}
+                      </p>
+                    </template>
+                  </div>
+                </div>
+
+                <!-- Teléfonos -->
+                <div class="flex items-start gap-3">
+                  <Phone class="w-5 h-5 text-primary/70" />
+                  <div class="flex-1 min-w-0">
+                    <label class="block text-xs font-medium text-text/70 dark:text-gray-400 mb-1"
+                      >Teléfono Principal</label
+                    >
+                    <template v-if="isEditing">
+                      <input
+                        v-model="editedClient.tel_1"
+                        type="tel"
+                        maxlength="8"
+                        class="w-full px-3 py-1.5 rounded-lg border border-input-border dark:border-gray-700 bg-background dark:bg-gray-800/50 text-text dark:text-white text-sm transition-all duration-300 hover:border-primary dark:hover:border-primary focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
+                        @keypress="onlyNumbers"
+                      />
+                    </template>
+                    <template v-else>
+                      <p class="text-sm text-text dark:text-white break-words">
+                        {{ editedClient.tel_1 }}
+                      </p>
+                    </template>
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                  <Phone class="w-5 h-5 text-primary/70" />
+                  <div class="flex-1 min-w-0">
+                    <label class="block text-xs font-medium text-text/70 dark:text-gray-400 mb-1"
+                      >Teléfono Alternativo</label
+                    >
+                    <template v-if="isEditing">
+                      <input
+                        v-model="editedClient.tel_2"
+                        type="tel"
+                        maxlength="8"
+                        class="w-full px-3 py-1.5 rounded-lg border border-input-border dark:border-gray-700 bg-background dark:bg-gray-800/50 text-text dark:text-white text-sm transition-all duration-300 hover:border-primary dark:hover:border-primary focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
+                        @keypress="onlyNumbers"
+                      />
+                    </template>
+                    <template v-else>
+                      <p class="text-sm text-text dark:text-white break-words">
+                        {{ editedClient.tel_2 || 'N/A' }}
+                      </p>
+                    </template>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Pie del modal -->
+        <!-- Acciones -->
         <div
-          class="sticky bottom-0 px-6 py-4 border-t border-container-border bg-background/80 backdrop-blur-xl"
+          class="sticky bottom-0 left-0 right-0 bg-background/80 dark:bg-gray-900/80 backdrop-blur-xl border-t border-container-border dark:border-gray-700 p-5"
         >
-          <div class="flex justify-between gap-3">
+          <div class="flex justify-end gap-3">
             <!-- Botón de eliminar -->
             <button
               class="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-red-500 text-white text-sm font-medium border-none transition-all duration-300 hover:bg-red-600 hover:-translate-y-0.5 hover:shadow-lg"
-              @click="showDeleteConfirm = true"
+              @click="confirmDelete"
             >
               <Trash2 class="w-5 h-5" />
               Eliminar Cliente
             </button>
 
-            <!-- Botones de acción -->
-            <div class="flex gap-3">
-              <button
-                class="px-6 py-2.5 rounded-xl bg-input-bg border border-input-border text-sm font-medium text-text transition-all duration-300 hover:bg-primary hover:border-primary hover:text-white hover:-translate-y-0.5 hover:shadow-md"
-                @click="handleClose"
-              >
-                Cerrar
-              </button>
-              <button
-                v-if="isEditing"
-                class="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-white text-sm font-medium border-none transition-all duration-300 hover:bg-primary-hover hover:-translate-y-0.5 hover:shadow-lg"
-                @click="handleSave"
-              >
-                <Save class="w-5 h-5" />
-                Guardar Cambios
-              </button>
-            </div>
+            <!-- Botón de editar/guardar -->
+            <button
+              v-if="!isEditing"
+              class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-white text-sm font-medium transition-all duration-300 hover:bg-primary-hover hover:-translate-y-0.5 hover:shadow-lg"
+              @click="isEditing = true"
+            >
+              <Pencil class="w-5 h-5" />
+              Editar
+            </button>
+            <button
+              v-else
+              class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-white text-sm font-medium transition-all duration-300 hover:bg-primary-hover hover:-translate-y-0.5 hover:shadow-lg"
+              @click="handleSave"
+            >
+              <Save class="w-5 h-5" />
+              Guardar Cambios
+            </button>
           </div>
         </div>
       </div>
@@ -397,353 +360,412 @@
   </Teleport>
 
   <!-- Modal de confirmación para eliminar -->
-  <Teleport to="body">
-    <div
-      v-if="showDeleteConfirm"
-      class="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[1200] p-6"
-      @click="showDeleteConfirm = false"
-    >
+  <template v-if="editedClient">
+    <Teleport to="body">
       <div
-        class="w-full max-w-[400px] bg-background rounded-3xl border border-container-border shadow-lg p-6"
-        @click.stop
+        v-if="showDeleteConfirm"
+        class="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[1200] p-6"
+        @click="cancelDelete"
       >
-        <div class="flex items-center gap-3 mb-4">
-          <div class="p-2 rounded-xl bg-red-100">
-            <AlertTriangle class="w-6 h-6 text-red-500" />
+        <div
+          class="w-full max-w-[400px] bg-background rounded-3xl border border-container-border shadow-lg p-6"
+          @click.stop
+        >
+          <div class="flex items-center gap-3 mb-4">
+            <div class="p-2 rounded-xl bg-red-100">
+              <AlertTriangle class="w-6 h-6 text-red-500" />
+            </div>
+            <h3 class="text-xl font-semibold text-text">Confirmar Eliminación</h3>
           </div>
-          <h3 class="text-xl font-semibold text-text">Confirmar Eliminación</h3>
-        </div>
 
-        <p class="text-text/70 mb-6">
-          ¿Está seguro que desea eliminar al cliente
-          <span class="font-medium text-text">{{
-            editedClient.nombres + ' ' + editedClient.apellidos
-          }}</span
-          >? Esta acción no se puede deshacer.
-        </p>
+          <p class="text-text/70 mb-6">
+            ¿Está seguro que desea eliminar al cliente
+            <span class="font-medium text-text">{{ editedClient.nombres }}</span
+            >? Esta acción no se puede deshacer.
+          </p>
 
-        <div class="flex justify-end gap-3">
-          <button
-            class="px-4 py-2 rounded-xl bg-input-bg border border-input-border text-sm font-medium text-text transition-all duration-300 hover:border-primary hover:text-primary hover:-translate-y-0.5 hover:shadow-md"
-            @click="showDeleteConfirm = false"
-          >
-            Cancelar
-          </button>
-          <button
-            class="px-4 py-2 rounded-xl bg-red-500 text-white text-sm font-medium border-none transition-all duration-300 hover:bg-red-600 hover:-translate-y-0.5 hover:shadow-lg"
-            @click="handleDeleteClient(editedClient.id_cliente ?? '')"
-          >
-            Eliminar
-          </button>
+          <div class="flex justify-end gap-3">
+            <button
+              class="px-4 py-2 rounded-xl bg-input-bg border border-input-border text-sm font-medium text-text transition-all duration-300 hover:border-primary hover:text-primary hover:-translate-y-0.5 hover:shadow-md"
+              @click="cancelDelete"
+            >
+              Cancelar
+            </button>
+            <button
+              class="px-4 py-2 rounded-xl bg-red-500 text-white text-sm font-medium border-none transition-all duration-300 hover:bg-red-600 hover:-translate-y-0.5 hover:shadow-lg"
+              @click="handleDelete"
+            >
+              Eliminar
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  </Teleport>
+    </Teleport>
+  </template>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import {
-  X,
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
-  CreditCard,
-  Building2,
-  Pencil,
-  Trash2,
-  AlertTriangle,
-  Save,
-} from 'lucide-vue-next';
-import { useToast } from 'vue-toastification';
-import { useClientes } from '@/composables/useClientes';
-import type { Database } from '@/lib/supabase';
+  import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
+  import {
+    X,
+    User,
+    Mail,
+    Phone,
+    Calendar,
+    CreditCard,
+    Building2,
+    Pencil,
+    Trash2,
+    AlertTriangle,
+    Save,
+    Type,
+  } from 'lucide-vue-next';
+  import { useToast } from 'vue-toastification';
+  import { useClientes } from '@/composables/useClientes';
+  import type { Database } from '@/lib/supabase';
+  import { useAuthStore } from '@/stores/auth.store';
 
-type Usuario = {
-  id_usuario: string;
-  nombre: string;
-  // ... otros campos necesarios
-};
+  const props = defineProps<{
+    show: boolean;
+    client: Database['public']['Tables']['clientes']['Row'] | null;
+    usuarios?: {
+      id_usuario: string;
+      nombre: string;
+      correo: string;
+      auth_user_id?: string;
+      fecha_creado?: string;
+    }[];
+  }>();
 
-type Cliente = Database['public']['Tables']['clientes']['Row'];
+  const emit = defineEmits<{
+    (e: 'close'): void;
+    (e: 'refresh'): void;
+    (e: 'updateClient', client: Database['public']['Tables']['clientes']['Row']): void;
+    (e: 'deleteClient', id: string): void;
+  }>();
 
-// Interfaz extendida para incluir todas las propiedades necesarias
-interface ClienteExtendido extends Cliente {
-  id_correduria?: string;
-  id_usuario_correduria?: string | null;
-  estado?: boolean;
-}
+  const toast = useToast();
+  const { deleteCliente, updateCliente } = useClientes();
+  const authStore = useAuthStore();
+  const currentUser = authStore.user;
 
-const props = withDefaults(defineProps<{
-  show: boolean;
-  client: ClienteExtendido | null;
-  usuarios: Usuario[];
-}>(), {
-  show: false,
-  client: null,
-  usuarios: () => []
-});
+  // Estados
+  const showDeleteConfirm = ref(false);
+  const showCloseConfirm = ref(false);
+  const isEditing = ref(false);
+  const hasChanges = ref(false);
+  const isLoading = ref(false);
+  const editedClient = ref<Database['public']['Tables']['clientes']['Row'] | null>(null);
 
-const emit = defineEmits<{
-  close: [];
-  'update-client': [formData: FormData];
-  'delete-client': [id_cliente: string];
-}>();
-
-const toast = useToast();
-const { updateCliente, deleteCliente } = useClientes();
-
-// Estados
-const showDeleteConfirm = ref(false);
-const showCloseConfirm = ref(false);
-const isEditing = ref(false);
-const hasChanges = ref(false);
-const isLoading = ref(false);
-
-// Definir valores por defecto para un cliente
-const defaultClient: ClienteExtendido = {
-  id_cliente: '',
-  identificacion: '',
-  correo: '',
-  nombres: '',
-  apellidos: '',
-  dob: null,
-  empresa: null,
-  tel_1: null,
-  tel_2: null,
-  fecha_creado: null,
-  creado_por: null,
-  fecha_modificado: null,
-  modificado_por: null,
-  direccion: null,
-  id_correduria: '',
-  id_usuario_correduria: null,
-  estado: true,
-  foto: null
-};
-
-// Función de ayuda para asegurar que los tipos sean correctos
-const mergeWithDefaults = (client: ClienteExtendido | null): ClienteExtendido => {
-  if (!client) return defaultClient;
-  
-  // Asegurarnos de que todos los campos requeridos estén presentes
-  const merged = { ...defaultClient };
-  
-  // Solo actualizar los campos que existen en el cliente
-  if (client.id_cliente) merged.id_cliente = client.id_cliente;
-  if (client.id_correduria) merged.id_correduria = client.id_correduria;
-  if (client.identificacion) merged.identificacion = client.identificacion;
-  if (client.correo) merged.correo = client.correo;
-  if (client.nombres) merged.nombres = client.nombres;
-  if (client.apellidos) merged.apellidos = client.apellidos;
-  if (client.dob !== undefined) merged.dob = client.dob;
-  if (client.empresa !== undefined) merged.empresa = client.empresa;
-  if (client.tel_1 !== undefined) merged.tel_1 = client.tel_1;
-  if (client.tel_2 !== undefined) merged.tel_2 = client.tel_2;
-  if (client.fecha_creado !== undefined) merged.fecha_creado = client.fecha_creado;
-  if (client.creado_por !== undefined) merged.creado_por = client.creado_por;
-  if (client.fecha_modificado !== undefined) merged.fecha_modificado = client.fecha_modificado;
-  if (client.modificado_por !== undefined) merged.modificado_por = client.modificado_por;
-  if (client.direccion !== undefined) merged.direccion = client.direccion;
-  if (client.id_usuario_correduria !== undefined) merged.id_usuario_correduria = client.id_usuario_correduria;
-  if (client.estado !== undefined) merged.estado = client.estado;
-  
-  return merged;
-};
-
-// Crear copia reactiva de los datos del cliente para edición
-const editedClient = ref<ClienteExtendido>(mergeWithDefaults(null));
-
-// Actualizar el watch para usar los valores por defecto
-watch(() => props.client, (newClient) => {
-  editedClient.value = mergeWithDefaults(newClient);
-}, { immediate: true });
-
-onMounted(() => {
-  // Agregar configuración para event listeners pasivos
-  const options = { passive: true };
-  document.addEventListener('touchstart', () => {}, options);
-  document.addEventListener('touchmove', () => {}, options);
-  document.addEventListener('wheel', () => {}, options);
-});
-
-onUnmounted(() => {
-  // Limpiar los event listeners al desmontar el componente
-  document.removeEventListener('touchstart', () => {});
-  document.removeEventListener('touchmove', () => {});
-  document.removeEventListener('wheel', () => {});
-});
-
-// Función para verificar cambios
-const checkChanges = () => {
-  const original = JSON.stringify(props.client);
-  const current = JSON.stringify(editedClient.value);
-  hasChanges.value = original !== current;
-};
-
-// Observar cambios en editedClient
-watch(
-  editedClient,
-  () => {
-    if (isEditing.value) {
-      checkChanges();
+  // Inicialización segura del cliente
+  const initializeClient = async () => {
+    try {
+      if (props.client) {
+        // Crear una copia profunda del cliente
+        editedClient.value = JSON.parse(JSON.stringify(props.client));
+      } else {
+        editedClient.value = null;
+      }
+    } catch (error) {
+      console.error('Error al inicializar cliente:', error);
+      toast.error('Error al cargar los datos del cliente');
+      editedClient.value = null;
     }
-  },
-  { deep: true },
-);
+  };
 
-const handleClose = () => {
-  if (isEditing.value && hasChanges.value) {
-    showCloseConfirm.value = true;
-  } else {
-    confirmClose();
-  }
-};
-
-const confirmClose = () => {
-  isEditing.value = false;
-  editedClient.value = mergeWithDefaults(props.client);
-  hasChanges.value = false;
-  showCloseConfirm.value = false;
-  emit('close');
-};
-
-const handleSave = async () => {
-  try {
-    if (!editedClient.value.nombres?.trim()) {
-      toast.error('Por favor complete el nombre');
-      return;
+  // Inicializar al montar el componente
+  onMounted(async () => {
+    try {
+      await initializeClient();
+      nextTick(() => {
+        // Asegurar que todo está renderizado antes de añadir event listeners
+        document.addEventListener('keydown', handleKeyDown);
+      });
+    } catch (error) {
+      console.error('Error en onMounted:', error);
     }
-
-    if (!editedClient.value.dob) {
-      toast.error('Por favor seleccione una fecha de nacimiento');
-      return;
-    }
-
-    // Mostrar loading mientras se procesa
-    isLoading.value = true;
-
-    // Actualizar cliente en Supabase
-    await updateCliente(editedClient.value.id_cliente, editedClient.value);
-    
-    toast.success('Cliente actualizado exitosamente');
-    isEditing.value = false;
-    hasChanges.value = false;
-  } catch (error) {
-    console.error('Error al guardar cliente:', error);
-    toast.error('Error al guardar los cambios');
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-const handleDeleteClient = async (clientId: string) => {
-  if (!clientId) {
-    toast.error('ID de cliente no válido');
-    return;
-  }
-
-  try {
-    isLoading.value = true;
-    await deleteCliente(clientId);
-    showDeleteConfirm.value = false;
-    toast.success('Cliente eliminado exitosamente');
-    emit('delete-client', clientId);
-    emit('close');
-  } catch (error) {
-    console.error('Error deleting client:', error);
-    toast.error('Error al eliminar el cliente: ' + (error instanceof Error ? error.message : 'Error desconocido'));
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-// Función para formatear fecha
-const formatDate = (date: string) => {
-  return new Date(date).toLocaleDateString('es-HN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
   });
-};
 
-// Función para validar solo letras y espacios con mejor manejo de caracteres especiales
-const onlyLetters = (e: KeyboardEvent) => {
-  const char = String.fromCharCode(e.keyCode || e.charCode);
-  const pattern = /^[A-Za-zÁáÉéÍíÓóÚúÑñÜü\s]$/;
-  if (!pattern.test(char)) {
-    e.preventDefault();
-    toast.warning('Solo se permiten letras y espacios');
-  }
-};
+  onUnmounted(() => {
+    try {
+      document.removeEventListener('keydown', handleKeyDown);
+    } catch (error) {
+      console.error('Error al remover event listener:', error);
+    }
+  });
 
-// Función para validar solo números con feedback visual
-const onlyNumbers = (e: KeyboardEvent) => {
-  const char = String.fromCharCode(e.keyCode || e.charCode);
-  if (!/^[0-9]$/.test(char)) {
-    e.preventDefault();
-    toast.warning('Solo se permiten números');
-  }
-};
+  // Watch para actualizar editedClient cuando cambia el cliente
+  watch(
+    () => props.client,
+    async (newClient) => {
+      try {
+        if (newClient) {
+          // Crear una copia profunda del cliente
+          editedClient.value = JSON.parse(JSON.stringify(newClient));
+          hasChanges.value = false;
+        } else {
+          editedClient.value = null;
+        }
+      } catch (error) {
+        console.error('Error al actualizar el cliente:', error);
+        toast.error('Error al actualizar los datos del cliente');
+        editedClient.value = null;
+      }
+    },
+    { immediate: true },
+  );
 
-//Formatear la fecha (DOB) para ser legible para el input
-const dobFormatted = computed({
-  get: () => {
-    if (!editedClient.value.dob) return ''; // Evitar errores en valores nulos
-    const date = new Date(editedClient.value.dob);
-    return date.toISOString().split('T')[0]; // Convierte a YYYY-MM-DD
-  },
-  set: (newValue: string) => {
-    editedClient.value.dob = new Date(newValue); // Convertir de string a Date
-  },
-});
+  // Watch para detectar cambios y actualizar hasChanges
+  watch(
+    () => editedClient.value,
+    () => {
+      if (isEditing.value && props.client && editedClient.value) {
+        try {
+          // Comparar para detectar cambios
+          const originalJSON = JSON.stringify(props.client);
+          const currentJSON = JSON.stringify(editedClient.value);
+          hasChanges.value = originalJSON !== currentJSON;
+        } catch (error) {
+          console.error('Error al comparar cambios:', error);
+        }
+      }
+    },
+    { deep: true },
+  );
 
-// Función para validar que la fecha de nacimiento no sea en el futuro
-const validateBirthDate = (event: Event) => {
-  const input = event.target as HTMLInputElement;
-  const selectedDate = new Date(input.value);
-  const today = new Date();
-  const minDate = new Date();
-  minDate.setFullYear(today.getFullYear() - 100);
-
-  if (selectedDate > today) {
-    input.value = today.toISOString().split('T')[0];
-    editedClient.value.dob = today;
-    toast.error('La fecha de nacimiento no puede ser en el futuro');
-  } else if (selectedDate < minDate) {
-    input.value = minDate.toISOString().split('T')[0];
-    editedClient.value.dob = minDate;
-    toast.error('La fecha de nacimiento no puede ser menor a 100 años');
-  }
-};
-
-// Separar el nombre en partes
-const nameParts = computed(() => {
-  const parts = editedClient.value.nombres.split(' ');
-  return {
-    firstName: parts[0] || '',
-    lastName: parts.slice(1).join(' ') || '',
+  const handleClose = () => {
+    if (isEditing.value && hasChanges.value) {
+      showCloseConfirm.value = true;
+    } else {
+      confirmClose();
+    }
   };
-});
 
-// Actualizar el nombre completo cuando cambian las partes
-const updateName = (part: 'firstName' | 'lastName', value: string) => {
-  const parts = nameParts.value;
-  if (part === 'firstName') {
-    parts.firstName = value;
-  } else {
-    parts.lastName = value;
-  }
-  editedClient.value.nombres = `${parts.firstName} ${parts.lastName}`.trim();
-};
-
-const getUsuarioNombre = computed(() => {
-  return (id: string) => {
-    if (!props.usuarios || props.usuarios.length === 0) return 'N/A';
-    const usuario = props.usuarios.find(u => u.id_usuario === id);
-    return usuario ? usuario.nombre : 'N/A';
+  const confirmClose = () => {
+    isEditing.value = false;
+    editedClient.value = props.client ? { ...props.client } : null;
+    hasChanges.value = false;
+    showCloseConfirm.value = false;
+    emit('close');
   };
-});
+
+  const handleDelete = async () => {
+    if (!editedClient.value?.id_cliente) {
+      toast.error('No se puede eliminar: ID de cliente no válido');
+      return;
+    }
+
+    try {
+      console.log('Iniciando eliminación del cliente:', editedClient.value.id_cliente);
+      isLoading.value = true;
+
+      // Llamar a la función de eliminación
+      const resultado = await deleteCliente(editedClient.value.id_cliente);
+
+      console.log('Resultado de la eliminación:', resultado);
+
+      if (resultado) {
+        toast.success('Cliente eliminado exitosamente');
+
+        // Emitir eventos al componente padre
+        emit('deleteClient', editedClient.value.id_cliente);
+        emit('refresh'); // Para refrescar la lista
+        emit('close'); // Para cerrar el modal
+      } else {
+        throw new Error('No se pudo eliminar el cliente');
+      }
+    } catch (error) {
+      console.error('Error al eliminar el cliente:', error);
+      let mensajeError = 'Error al eliminar el cliente';
+
+      if (error instanceof Error) {
+        mensajeError += ': ' + error.message;
+      }
+
+      toast.error(mensajeError);
+    } finally {
+      isLoading.value = false;
+      showDeleteConfirm.value = false;
+    }
+  };
+
+  const confirmDelete = () => {
+    showDeleteConfirm.value = true;
+  };
+
+  const cancelDelete = () => {
+    showDeleteConfirm.value = false;
+  };
+
+  // Separar el nombre en partes
+  const nameParts = computed(() => {
+    if (!editedClient.value?.nombres) {
+      return { firstName: '', lastName: '' };
+    }
+    const parts = editedClient.value.nombres.split(' ');
+    return {
+      firstName: parts[0] || '',
+      lastName: parts.slice(1).join(' ') || '',
+    };
+  });
+
+  // Actualizar el nombre completo cuando cambian las partes
+  const updateName = (part: 'firstName' | 'lastName', value: string) => {
+    if (!editedClient.value) return;
+
+    const parts = nameParts.value;
+    if (part === 'firstName') {
+      parts.firstName = value;
+    } else {
+      parts.lastName = value;
+    }
+    editedClient.value.nombres = `${parts.firstName} ${parts.lastName}`.trim();
+    hasChanges.value = true;
+  };
+
+  // Manejador específico para cambios en el input de fecha
+  const handleDateInput = (e: Event) => {
+    if (!editedClient.value) return;
+    const input = e.target as HTMLInputElement;
+    // Establecer como string y dejar que el composable haga la conversión
+    (editedClient.value as any).dob = input.value;
+    hasChanges.value = true;
+  };
+
+  // Cerrar modal con la tecla Escape
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      event.preventDefault(); // Prevenir comportamiento por defecto
+      handleClose();
+    }
+  };
+
+  // Funciones de validación
+  const onlyLetters = (e: KeyboardEvent) => {
+    const char = String.fromCharCode(e.keyCode || e.charCode);
+    const pattern = /^[A-Za-zÁáÉéÍíÓóÚúÑñÜü\s]$/;
+    if (!pattern.test(char)) {
+      e.preventDefault();
+      toast.warning('Solo se permiten letras y espacios');
+    }
+  };
+
+  const onlyNumbers = (e: KeyboardEvent) => {
+    const char = String.fromCharCode(e.keyCode || e.charCode);
+    if (!/^[0-9]$/.test(char)) {
+      e.preventDefault();
+      toast.warning('Solo se permiten números');
+    }
+  };
+
+  const handleSave = async () => {
+    if (!editedClient.value) {
+      toast.error('No hay datos del cliente para guardar');
+      return;
+    }
+
+    try {
+      // Validaciones
+      if (!editedClient.value.nombres?.trim()) {
+        toast.error('Por favor complete el nombre');
+        return;
+      }
+
+      if (!editedClient.value.identificacion?.trim()) {
+        toast.error('Por favor complete la identificación');
+        return;
+      }
+
+      if (!editedClient.value.correo?.trim()) {
+        toast.error('Por favor complete el correo electrónico');
+        return;
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(editedClient.value.correo)) {
+        toast.error('Por favor ingrese un correo electrónico válido');
+        return;
+      }
+
+      isLoading.value = true;
+
+      // Verificar que existe id_cliente antes de enviar actualización
+      if (!editedClient.value.id_cliente) {
+        throw new Error('ID de cliente no válido');
+      }
+
+      console.log('Cliente antes de actualizar:', editedClient.value);
+
+      // Crear un objeto simple con solo los campos que queremos actualizar
+      const clienteParaActualizar = {
+        identificacion: editedClient.value.identificacion,
+        correo: editedClient.value.correo,
+        nombres: editedClient.value.nombres,
+        empresa: editedClient.value.empresa || null,
+        tel_1: editedClient.value.tel_1 || null,
+        tel_2: editedClient.value.tel_2 || null,
+        dob: editedClient.value.dob,
+        modificado_por: currentUser?.id || null,
+      };
+
+      console.log('Actualizando cliente...');
+      console.log('ID:', editedClient.value.id_cliente);
+      console.log('Datos a enviar:', JSON.stringify(clienteParaActualizar, null, 2));
+
+      // Implementar actualización utilizando el composable
+      const updatedClient = await updateCliente(
+        editedClient.value.id_cliente,
+        clienteParaActualizar,
+      );
+
+      // Procesar respuesta
+      if (updatedClient) {
+        console.log('Cliente actualizado correctamente:', JSON.stringify(updatedClient, null, 2));
+
+        // Actualizar editedClient con los datos recibidos del servidor
+        editedClient.value = { ...updatedClient };
+
+        // Emitir el cliente actualizado directamente
+        emit('updateClient', updatedClient);
+        emit('refresh'); // Para asegurar que la lista de clientes se actualice
+
+        toast.success('Cliente actualizado exitosamente');
+        isEditing.value = false;
+        hasChanges.value = false;
+      } else {
+        // Si no hay cliente actualizado pero no hubo error, mostrar un mensaje genérico
+        console.warn('No se obtuvo respuesta con datos del cliente actualizado');
+        toast.info('No se realizaron cambios en el cliente');
+        isEditing.value = false;
+      }
+    } catch (error) {
+      console.error('Error al guardar cliente:', error);
+
+      // Mostrar mensaje de error específico si es posible
+      let errorMessage = 'Error desconocido';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        errorMessage = JSON.stringify(error);
+      }
+
+      toast.error('Error al guardar los cambios: ' + errorMessage);
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  // Función para obtener las iniciales del nombre
+  const getInitials = (name: string | null | undefined): string => {
+    if (!name) return 'C';
+
+    const names = name.trim().split(' ');
+    if (names.length === 0) return 'C';
+
+    if (names.length === 1) {
+      return names[0].charAt(0).toUpperCase();
+    }
+
+    return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+  };
 </script>

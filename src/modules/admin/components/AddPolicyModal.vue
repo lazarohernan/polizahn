@@ -23,23 +23,23 @@
         >
           <div
             v-if="show"
-            class="w-full h-[90vh] md:h-auto md:max-h-[90vh] md:w-[90%] lg:w-[700px] overflow-y-auto bg-background dark:bg-gray-900 rounded-t-[2rem] md:rounded-[2rem] border border-container-border dark:border-gray-700 shadow-[0_8px_32px_rgba(0,0,0,0.2)] transition-colors duration-200"
+            class="w-full h-[90vh] md:h-auto md:max-h-[90vh] md:w-[90%] lg:w-[700px] overflow-y-auto bg-background rounded-t-[2rem] md:rounded-[2rem] border border-container-border shadow-[0_8px_32px_rgba(0,0,0,0.2)] transition-colors duration-200"
             @click.stop
           >
         <!-- Encabezado -->
-        <div class="sticky top-0 z-10 p-5 md:p-5 border-b border-container-border bg-background/80 backdrop-blur-xl">
+        <div class="sticky top-0 z-10 p-5 border-b border-container-border bg-background/80 backdrop-blur-xl">
           <div class="flex items-center justify-between gap-3 md:gap-4">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
                 <Shield class="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h2 class="text-xl font-semibold text-text m-0">Nueva Póliza</h2>
-                <p class="text-sm text-text/60 mt-0.5 m-0">Complete los detalles de la nueva póliza</p>
+                <h2 class="text-xl font-semibold text-text dark:text-white m-0">Nueva Póliza</h2>
+                <p class="text-sm text-text/60 dark:text-gray-400 mt-0.5 m-0">Complete los detalles de la nueva póliza</p>
               </div>
             </div>
             <button
-              class="p-2.5 rounded-xl border-none bg-input-bg text-text cursor-pointer transition-all duration-300 hover:bg-primary hover:text-white hover:-translate-y-0.5 hover:shadow-lg flex items-center justify-center"
+              class="p-2.5 rounded-xl border-none bg-input-bg dark:bg-gray-800 text-text dark:text-white cursor-pointer transition-all duration-300 hover:bg-primary hover:text-white hover:-translate-y-0.5 hover:shadow-lg flex items-center justify-center"
               @click="handleClose"
             >
               <X class="w-5 h-5" />
@@ -59,8 +59,8 @@
               <div class="flex items-center gap-2 md:gap-3 mb-3">
                 <Building2 class="w-4 h-4 md:w-5 md:h-5 text-primary" />
                 <div>
-                  <h3 class="text-sm md:text-base font-medium text-text m-0">Aseguradora</h3>
-                  <p class="text-xs text-text/60 m-0">Seleccione la aseguradora para esta póliza</p>
+                  <h3 class="text-sm md:text-base font-medium text-text dark:text-white m-0">Aseguradora</h3>
+                  <p class="text-xs text-text/60 dark:text-gray-400 m-0">Seleccione la aseguradora para esta póliza</p>
                 </div>
               </div>
 
@@ -88,15 +88,16 @@
                   id="insurer"
                   key="select"
                   v-model="selectedInsurer"
-                  class="w-full py-2.5 md:py-3 px-3 md:px-4 rounded-xl border border-input-border bg-background text-text text-xs md:text-sm transition-all duration-300 hover:border-primary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 appearance-none bg-[url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[length:16px] bg-[center_right_1rem]"
+                  class="w-full py-2.5 md:py-3 px-3 md:px-4 rounded-xl border border-input-border dark:border-gray-700 bg-background dark:bg-gray-800/50 text-text dark:text-white text-xs md:text-sm transition-all duration-300 hover:border-primary dark:hover:border-primary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/40 appearance-none bg-[url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[length:16px] bg-[center_right_1rem] disabled:opacity-50 disabled:cursor-not-allowed dark:disabled:bg-gray-700/50"
                   :disabled="loading || insurers.length === 0"
                   required
                 >
-                  <option value="" disabled selected>{{ insurers.length === 0 ? 'No hay aseguradoras disponibles' : 'Seleccione una aseguradora' }}</option>
+                  <option value="" disabled selected class="bg-background dark:bg-gray-800">{{ insurers.length === 0 ? 'No hay aseguradoras disponibles' : 'Seleccione una aseguradora' }}</option>
                   <option
                     v-for="insurer in insurers"
                     :key="insurer.id_aseguradora"
                     :value="insurer.id_aseguradora"
+                    class="bg-background dark:bg-gray-800"
                   >
                     {{ insurer.nombre }}
                   </option>
@@ -120,19 +121,19 @@
             </div>
 
             <!-- Detalles -->
-            <div class="bg-input-bg/50 border border-input-border rounded-xl md:rounded-2xl p-3 md:p-4 transition-all duration-300 hover:bg-input-bg">
+            <div class="bg-input-bg/50 dark:bg-gray-800/50 border border-input-border dark:border-gray-700 rounded-xl md:rounded-2xl p-3 md:p-4 transition-all duration-300 hover:bg-input-bg dark:hover:bg-gray-800/80">
               <div class="flex items-center gap-2 md:gap-3 mb-3">
                 <FileText class="w-4 h-4 md:w-5 md:h-5 text-primary" />
                 <div>
-                  <h3 class="text-sm md:text-base font-medium text-text m-0">Detalles de la Póliza</h3>
-                  <p class="text-xs text-text/60 m-0">Ingrese la información básica de la póliza</p>
+                  <h3 class="text-sm md:text-base font-medium text-text dark:text-white m-0">Detalles de la Póliza</h3>
+                  <p class="text-xs text-text/60 dark:text-gray-400 m-0">Ingrese la información básica de la póliza</p>
                 </div>
               </div>
 
               <div class="space-y-3">
                 <!-- Nombre -->
                 <div>
-                  <label for="name" class="text-xs md:text-sm font-medium text-text flex items-center gap-2 mb-1.5">
+                  <label for="name" class="text-xs md:text-sm font-medium text-text dark:text-white flex items-center gap-2 mb-1.5">
                     <Type class="w-3 h-3 md:w-4 md:h-4 text-primary" />
                     Nombre de la Póliza
                   </label>
@@ -140,24 +141,15 @@
                     id="name"
                     v-model="name"
                     type="text"
-                    class="w-full py-2.5 md:py-3 px-3 md:px-4 rounded-xl border border-input-border bg-background text-text text-xs md:text-sm transition-all duration-300 hover:border-primary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    class="w-full py-2.5 md:py-3 px-3 md:px-4 rounded-xl border border-input-border dark:border-gray-700 bg-background dark:bg-gray-800/50 text-text dark:text-white text-xs md:text-sm transition-all duration-300 hover:border-primary dark:hover:border-primary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/40 dark:placeholder-gray-500"
                     placeholder="Ingrese el nombre de la póliza"
                     required
                   />
                 </div>
 
-                <!-- Fecha de la póliza -->
-                <div>
-                  <label for="fecha_poliza" class="text-xs md:text-sm font-medium text-text flex items-center gap-2 mb-1.5">
-                    <Calendar class="w-3 h-3 md:w-4 md:h-4 text-primary" />
-                    Fecha de la Póliza
-                  </label>
-                  <p class="text-xs text-text/60">La fecha se asignará automáticamente al momento de crear la póliza</p>
-                </div>
-
                 <!-- Archivo -->
                 <div>
-                  <label class="text-xs md:text-sm font-medium text-text flex items-center gap-2 mb-1.5">
+                  <label class="text-xs md:text-sm font-medium text-text dark:text-white flex items-center gap-2 mb-1.5">
                     <Upload class="w-3 h-3 md:w-4 md:h-4 text-primary" />
                     Archivo de la Póliza
                     <span class="text-[10px] md:text-xs font-normal text-primary/70">(PDF o Word, máx. 10MB)</span>
@@ -179,10 +171,10 @@
                     />
                     <div class="flex flex-col items-center justify-center text-center">
                       <Upload class="w-6 h-6 md:w-8 md:h-8 text-primary mb-2" />
-                      <p class="text-xs md:text-sm text-text m-0">
+                      <p class="text-xs md:text-sm text-text dark:text-white m-0">
                         {{ selectedFileName || 'Arrastra y suelta aquí o haz clic para seleccionar' }}
                       </p>
-                      <p class="text-[10px] md:text-xs text-text/60 mt-1">PDF o Word (.doc, .docx) hasta 10MB</p>
+                      <p class="text-[10px] md:text-xs text-text/60 dark:text-gray-400 mt-1">PDF o Word (.doc, .docx) hasta 10MB</p>
                     </div>
                   </div>
                   <!-- Error de archivo -->
@@ -205,14 +197,14 @@
 
                 <!-- Descripción -->
                 <div>
-                  <label for="description" class="text-xs md:text-sm font-medium text-text flex items-center gap-2 mb-1.5">
+                  <label for="description" class="text-xs md:text-sm font-medium text-text dark:text-white flex items-center gap-2 mb-1.5">
                     <AlignLeft class="w-3 h-3 md:w-4 md:h-4 text-primary" />
                     Descripción
                   </label>
                   <textarea
                     id="description"
                     v-model="description"
-                    class="w-full py-2.5 md:py-3 px-3 md:px-4 rounded-xl border border-input-border bg-background text-text text-xs md:text-sm transition-all duration-300 hover:border-primary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 resize-y min-h-[80px] md:min-h-[100px]"
+                    class="w-full py-2.5 md:py-3 px-3 md:px-4 rounded-xl border border-input-border dark:border-gray-700 bg-background dark:bg-gray-800/50 text-text dark:text-white text-xs md:text-sm transition-all duration-300 hover:border-primary dark:hover:border-primary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/40 dark:placeholder-gray-500 resize-y min-h-[80px] md:min-h-[100px]"
                     placeholder="Ingrese una descripción detallada de la póliza"
                     rows="3"
                     required
@@ -225,7 +217,7 @@
             <div class="sticky bottom-0 left-0 right-0 bg-background/80 dark:bg-gray-900/80 backdrop-blur-xl border-t border-container-border dark:border-gray-700 p-5">
               <div class="flex items-center justify-end gap-3">
                 <div class="flex-grow"> <!-- Takes up remaining space -->
-                  <div class="flex items-center gap-2" v-if="formErrors.length > 0">
+                  <div v-if="formErrors.length > 0" class="flex items-center gap-2">
                     <AlertTriangle 
                       class="w-5 h-5 text-red-500" 
                     />
@@ -239,7 +231,7 @@
                 
                 <button
                   type="button"
-                  class="flex-1 md:flex-none px-6 py-3.5 rounded-xl text-sm font-medium bg-input-bg border border-input-border text-text transition-all duration-300 hover:border-primary hover:text-primary dark:hover:text-white flex items-center justify-center gap-2 min-w-[120px]"
+                  class="flex-1 md:flex-none px-6 py-3.5 rounded-xl text-sm font-medium bg-input-bg border border-input-border text-text transition-all duration-300 hover:border-primary hover:text-primary flex items-center justify-center gap-2 min-w-[120px]"
                   @click="handleClose"
                 >
                   <X class="w-4 h-4" />
@@ -276,7 +268,7 @@
 
 <script setup lang="ts">
   import { onMounted, ref } from 'vue';
-  import { X, Building2, Shield, Type, Upload, FileText, Save, AlertTriangle, AlertCircle, AlignLeft, Calendar } from 'lucide-vue-next';
+  import { X, Building2, Shield, Type, Upload, FileText, Save, AlertTriangle, AlertCircle, AlignLeft } from 'lucide-vue-next';
   import { useToast } from 'vue-toastification';
   import { useAseguradoras } from '@/composables/useAseguradoras';
   import { usePolizas } from '@/composables/usePolizas';

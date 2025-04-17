@@ -30,5 +30,6 @@
     "noImplicitAny": false
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"],
+  "exclude": ["src/icons/ArrowLeftIcon.vue", "src/icons/ArrowRightIcon.vue", "**/*.vue.js", "node_modules"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

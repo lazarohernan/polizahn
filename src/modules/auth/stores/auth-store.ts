@@ -6,6 +6,13 @@ import type { User } from '@supabase/supabase-js';
 import { useSupabaseAuth } from '@/composables/useSupabaseAuth';
 import { useToast } from 'vue-toastification';
 
+// Función helper para logs condicionales
+const devLog = (message: string, ...args: unknown[]) => {
+  if (import.meta.env.DEV) {
+    console.log(message, ...args);
+  }
+};
+
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
   const loading = ref(true);
@@ -31,7 +38,7 @@ export const useAuthStore = defineStore('auth', () => {
       
       // Si es superadmin, retornar string vacío ya que no necesita correduría
       if (authRole === 'superadmin') {
-        console.log('Usuario superadmin: No requiere obtener correduría');
+        devLog('Usuario superadmin: No requiere obtener correduría');
         return '';
       }
       
@@ -43,13 +50,13 @@ export const useAuthStore = defineStore('auth', () => {
         .single();
       
       if (error) {
-        console.warn('No se encontró correduría asignada:', error);
+        devLog('No se encontró correduría asignada:', error);
         return '';
       }
       
       return data?.id_correduria || '';
     } catch (error) {
-      console.error('Error al obtener correduría:', error);
+      devLog('Error al obtener correduría:', error);
       return '';
     }
   };
@@ -66,11 +73,11 @@ export const useAuthStore = defineStore('auth', () => {
         const userRole = user.value?.app_metadata?.role || 
                         user.value?.user_metadata?.role;
         
-        console.log('Rol del usuario:', userRole);
+        devLog('Rol del usuario:', userRole);
         
         // Si es superadmin, no necesitamos obtener datos adicionales de correduría
         if (userRole === 'superadmin') {
-          console.log('Usuario superadmin: No requiere correduría');
+          devLog('Usuario superadmin: No requiere correduría');
           id_correduria.value = '';
           loading.value = false;
           return; // Finalizar inicialización temprano para superadmin
@@ -96,17 +103,17 @@ export const useAuthStore = defineStore('auth', () => {
             const userCorreduriaId = await fetchUserCorreduria(user.value.id);
             id_correduria.value = userCorreduriaId;
           } catch (corrError) {
-            console.warn('No se pudo obtener correduría:', corrError);
+            devLog('No se pudo obtener correduría:', corrError);
             id_correduria.value = '';
           }
         } catch (error) {
-          console.warn('Error al obtener datos de perfil:', error);
+          devLog('Error al obtener datos de perfil:', error);
         }
       }
 
       // Configurar listener para cambios de autenticación
       supabase.auth.onAuthStateChange(async (event, session) => {
-        console.log(`Cambio en autenticación: ${event}`);
+        devLog(`Cambio en autenticación: ${event}`);
         user.value = session?.user ?? null;
         
         if (event === 'SIGNED_OUT') {
@@ -127,13 +134,13 @@ export const useAuthStore = defineStore('auth', () => {
             // Reintentar obtener datos de perfil y correduría
             await initialize();
           } catch (error) {
-            console.error('Error al reinicializar después del login:', error);
+            devLog('Error al reinicializar después del login:', error);
             toast.error('Error al cargar los datos de tu perfil');
           }
         }
       });
     } catch (error) {
-      console.error('Error initializing auth:', error);
+      devLog('Error initializing auth:', error);
     } finally {
       loading.value = false;
     }
@@ -153,7 +160,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       return true;
     } catch (error) {
-      console.error('Error during login:', error);
+      devLog('Error during login:', error);
       return false;
     }
   };
@@ -168,7 +175,7 @@ export const useAuthStore = defineStore('auth', () => {
       id_correduria.value = '';
       return true;
     } catch (error) {
-      console.error('Error during logout:', error);
+      devLog('Error during logout:', error);
       return false;
     }
   };
@@ -186,7 +193,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      devLog('Error fetching user profile:', error);
       return null;
     }
   };
@@ -194,9 +201,9 @@ export const useAuthStore = defineStore('auth', () => {
   const updateAvatarUrl = (newUrl: string) => {
     if (newUrl) {
       foto.value = newUrl;
-      console.log('AuthStore: Avatar URL actualizada a', newUrl);
+      devLog('AuthStore: Avatar URL actualizada a', newUrl);
     } else {
-      console.warn('AuthStore: Se intentó actualizar el avatar con una URL vacía');
+      devLog('AuthStore: Se intentó actualizar el avatar con una URL vacía');
     }
   };
 
