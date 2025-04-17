@@ -16,6 +16,7 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 .DS_Store
+**/.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
@@ -23,10 +24,15 @@ dist-ssr
 *.sw?
 
 # Environment variables
+.env
 .env.local
+.env.development
 .env.development.local
+.env.test
 .env.test.local
+.env.production
 .env.production.local
+.env.staging
 
 # Logs
 logs
@@ -47,3 +53,14 @@ cline_docs/
 # Ignore .js files that correspond to .ts or .vue files
 src/**/*.ts.js
 src/**/*.vue.js
+
+# Database files
+seguros_db
+*.dump
+*.sql
+*.backup
+
+# Temp files
+.temp
+.tmp
+_backup/
