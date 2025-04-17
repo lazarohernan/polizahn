@@ -16,7 +16,7 @@
             <PermissionWrapper requires="clientes_create">
               <button
                 class="flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-white text-sm font-medium border-none hover:bg-primary-hover whitespace-nowrap"
-                @click="handleAddClient"
+                @click="openAddClientModal"
               >
                 <Plus class="w-5 h-5" />
                 <span>Nuevo Cliente</span>
@@ -247,7 +247,7 @@
         <ViewClientModal
           v-if="currentModal === 'details'"
           :show="true"
-          :client="selectedClient"
+          :client="selectedClientWithCorreduria"
           :usuarios="usuarios"
           @close="handleCloseModal"
           @update-client="handleUpdateClient"
@@ -258,21 +258,22 @@
           v-else-if="currentModal === 'new'"
           :show="true"
           @close="handleCloseModal"
-          @add-client="handleAddClient"
+          @add-client="handleCreateClient"
         />
 
         <ViewClientPolicyModal
-          v-else-if="currentModal === 'policies'"
+          v-else-if="currentModal === 'policies' && selectedClientWithCorreduria"
           :show="true"
-          :client="selectedClient"
+          :client="selectedClientWithCorreduria"
+          :id-cliente="selectedClientWithCorreduria.id_cliente"
           :usuarios="usuarios"
           @close="handleCloseModal"
         />
 
         <ViewClientPaymentsModal
-          v-else-if="currentModal === 'payments'"
+          v-else-if="currentModal === 'payments' && selectedClientWithCorreduria"
           :show="true"
-          :client="selectedClient"
+          :client="selectedClientWithCorreduria"
           :usuarios="usuarios"
           :plan-de-pago-id="selectedPlanDePagoId"
           @close="handleCloseModal"
@@ -310,36 +311,59 @@ import {
 import { useToast } from 'vue-toastification';
 import { useAuthStore } from '@/stores/auth.store';
 import { storeToRefs } from 'pinia';
+import type { Cliente as ClienteInterface } from '@/modules/admin/interfaces/cliente_interface';
 
-type Cliente = Database['public']['Tables']['clientes']['Row'] & {
+// Tipo de base de datos para la tabla clientes
+type ClienteDB = Database['public']['Tables']['clientes']['Row'];
+
+// Extender ClienteInterface con campos adicionales y asegurar valores null para opcionales
+interface Cliente extends ClienteInterface {
+  empresa: string | null; 
+  tel_1: string | null;   
+  tel_2: string | null;   
+  dob: Date | null;     
+  foto: string | null; 
+  direccion: string | null; // Forzar a string | null
   total_polizas?: number;
-  foto?: string;
-  direccion?: string;
-};
+  clientes_por_correduria?: {
+    id_cliente_correduria: string;
+    id_correduria: string;
+    fecha_creado: string;
+  }[];
+  id_usuario_correduria?: string | null; 
+}
 
 // Definir tipo Usuario
 type Usuario = {
   id_usuario: string;
   nombre: string;
   correo: string;
-  [key: string]: any; // Para cualquier otra propiedad que pueda tener
+  auth_user_id?: string;
+  fecha_creado?: string;
 };
 
 // Composables
 const router = useRouter();
 const route = useRoute();
 const toast = useToast();
-const { getClientes, updateCliente, deleteCliente } = useClientes();
+const { 
+  getClientes, // Devuelve { clientes: ClienteDB[], ... }
+  updateCliente, 
+  deleteCliente,
+  getClienteById, // Devuelve ClienteDB | null
+  createCliente
+} = useClientes();
 const permissions = usePermissions();
 const authStore = useAuthStore();
 const { id_correduria } = storeToRefs(authStore);
+const currentUser = authStore.user;
 const { searchClients, loading: searchLoading, error: searchError, filteredItems } = useSearchClients();
 const { getUsuariosPorCorreduria } = useUsuarios();
 
-// Estado
+// Estado - Usar el tipo Cliente extendido
 const loading = ref(false);
 const error = ref<Error | null>(null);
-const clientes = ref<Cliente[]>([]);
+const clientes = ref<Cliente[]>([]); 
 const selectedClient = ref<Cliente | null>(null);
 const searchQuery = ref('');
 const paginaActual = ref(1);
@@ -365,23 +389,140 @@ const currentModal = computed(() => {
   }
 });
 
+// Computed devuelve el tipo Cliente extendido
+const selectedClientWithCorreduria = computed<Cliente | null>(() => {
+  if (!selectedClient.value) return null;
+
+  // Ya tenemos el tipo Cliente completo en selectedClient
+  return selectedClient.value;
+});
+
+// Helper para convertir ClienteDB a Cliente
+const convertClienteDBToCliente = (clienteDB: ClienteDB | null): Cliente | null => {
+  if (!clienteDB) return null;
+
+  // Tipo auxiliar para la relación esperada en Cliente
+  type CorreduriaRel = {
+    id_cliente_correduria: string;
+    id_correduria: string;
+    fecha_creado: string;
+  };
+
+  // Tipo auxiliar para la relación como podría venir de Supabase (ajustar si es necesario)
+  type CorreduriaRelFromDB = {
+    id_cliente_correduria?: string; // Puede ser opcional
+    id_correduria: string;
+    fecha_creado?: string; // Puede ser opcional
+  }
+
+  // Tratar como tipo extendido para acceder a posibles propiedades
+  const clienteDBExt = clienteDB as ClienteDB & {
+    clientes_por_correduria?: CorreduriaRelFromDB[]; // Usar tipo auxiliar
+    foto?: string | null;
+    direccion?: string | null;
+    id_usuario_correduria?: string | null;
+  };
+
+  let determinedCorreduriaId = id_correduria.value || ''; // Default
+  let correduriaRels: CorreduriaRel[] = [];
+
+  if (clienteDBExt.clientes_por_correduria && clienteDBExt.clientes_por_correduria.length > 0) {
+    // Mapear la relación del DB al formato esperado en Cliente
+    correduriaRels = clienteDBExt.clientes_por_correduria.map(rel => ({
+      id_cliente_correduria: rel.id_cliente_correduria || '', // Proveer default
+      id_correduria: rel.id_correduria,
+      fecha_creado: rel.fecha_creado || new Date().toISOString(), // Proveer default
+    }));
+
+    const userCorreduriaRelation = correduriaRels.find(
+      rel => rel.id_correduria === id_correduria.value
+    );
+    if (userCorreduriaRelation) {
+      determinedCorreduriaId = userCorreduriaRelation.id_correduria;
+    } else {
+      determinedCorreduriaId = correduriaRels[0].id_correduria; // Usar el mapeado
+    }
+  }
+  
+  return {
+    id_cliente: clienteDB.id_cliente,
+    id_correduria: determinedCorreduriaId,
+    nombres: clienteDB.nombres,
+    apellidos: clienteDB.apellidos,
+    identificacion: clienteDB.identificacion,
+    correo: clienteDB.correo,
+    tel_1: clienteDB.tel_1 || null, 
+    tel_2: clienteDB.tel_2 || null, 
+    empresa: clienteDB.empresa || null, 
+    dob: clienteDB.dob || null, 
+    fecha_creado: clienteDB.fecha_creado,
+    creado_por: clienteDB.creado_por,
+    fecha_modificado: clienteDB.fecha_modificado,
+    modificado_por: clienteDB.modificado_por,
+    foto: clienteDBExt.foto || null,
+    direccion: clienteDBExt.direccion || null,
+    id_usuario_correduria: clienteDBExt.id_usuario_correduria || null,
+    total_polizas: 0, 
+    clientes_por_correduria: correduriaRels, // Asignar el array mapeado
+  };
+};
+
 // Watch para la búsqueda
 watch(searchQuery, async (newQuery) => {
   if (newQuery.length >= 2) {
+    // searchClients devuelve ClienteInterface[], necesitamos convertirlos
     await searchClients(newQuery, id_correduria.value);
+    // Asegurar que el map no devuelva nulls si convertClienteDBToCliente falla
+    clientes.value = filteredItems.value
+      .map(cliInterface => convertClienteDBToCliente(cliInterface as unknown as ClienteDB))
+      .filter((cliente): cliente is Cliente => cliente !== null);
   } else if (newQuery.length === 0) {
     await loadClientes();
   }
 });
+
+// Watch para el cambio de ruta
+watch(
+  () => route.params.id,
+  async (newId) => {
+    if (newId && (route.name === 'cliente-detalles' || route.name === 'cliente-polizas')) {
+      await loadClienteDetalle(newId.toString());
+    }
+  },
+  { immediate: true }
+);
+
+// Función para cargar detalles del cliente
+const loadClienteDetalle = async (id: string) => {
+  if (!id) return;
+
+  loading.value = true;
+  try {
+    const clienteDB = await getClienteById(id); // Devuelve ClienteDB | null
+    if (clienteDB) {
+      selectedClient.value = convertClienteDBToCliente(clienteDB);
+    } else {
+      toast.error('No se encontró el cliente');
+      router.push({ name: 'clientes' });
+    }
+  } catch (err) {
+    error.value = err as Error;
+    toast.error('Error al cargar los detalles del cliente');
+    console.error('Error al cargar los detalles del cliente:', err);
+  } finally {
+    loading.value = false;
+  }
+};
 
 // Función para cargar clientes
 const loadClientes = async () => {
   loading.value = true;
   error.value = null;
   try {
-    const response = await getClientes(paginaActual.value, limite.value);
+    const response = await getClientes(paginaActual.value, limite.value); // Devuelve { clientes: ClienteDB[], ... }
     if (response) {
-      clientes.value = response.clientes;
+      // Mapear ClienteDB[] a Cliente[]
+      clientes.value = response.clientes.map(clienteDB => convertClienteDBToCliente(clienteDB) as Cliente); // Asegurar que no sea null
       totalRegistros.value = response.total;
     }
   } catch (err) {
@@ -392,14 +533,6 @@ const loadClientes = async () => {
     loading.value = false;
   }
 };
-
-// Calcular elementos paginados
-const paginatedItems = computed(() => {
-  if (searchQuery.value) {
-    return filteredItems.value;
-  }
-  return clientes.value;
-});
 
 // Funciones auxiliares
 const getInitials = (name: string): string => {
@@ -415,18 +548,22 @@ const getImageSrc = (foto: string): string => {
   return foto.startsWith('http') ? foto : `/uploads/${foto}`;
 };
 
-// Methods
+// Methods - Navegación
+const openAddClientModal = () => {
+  if (!permissions.hasPermission('clientes_create') && !permissions.isSuperAdmin.value) {
+    toast.error('No tienes permiso para crear clientes');
+    return;
+  }
+  router.push({ name: 'cliente-nuevo' });
+};
+
 const handleViewClient = (id: string) => {
   if (!permissions.hasPermission('clientes_view') && !permissions.isSuperAdmin.value) {
     toast.error('No tienes permiso para ver detalles de clientes');
     return;
   }
   
-  const client = clientes.value.find(c => c.id_cliente === id);
-  if (client) {
-    selectedClient.value = client;
-    router.push({ name: 'cliente-detalles', params: { id } });
-  }
+  router.push({ name: 'cliente-detalles', params: { id } });
 };
 
 const handleViewPolicies = (id: string) => {
@@ -435,19 +572,7 @@ const handleViewPolicies = (id: string) => {
     return;
   }
   
-  const client = clientes.value.find(c => c.id_cliente === id);
-  if (client) {
-    selectedClient.value = client;
-    router.push({ name: 'cliente-polizas', params: { id } });
-  }
-};
-
-const handleAddClient = () => {
-  if (!permissions.hasPermission('clientes_create') && !permissions.isSuperAdmin.value) {
-    toast.error('No tienes permiso para crear clientes');
-    return;
-  }
-  router.push({ name: 'cliente-nuevo' });
+  router.push({ name: 'cliente-polizas', params: { id } });
 };
 
 const handleCloseModal = () => {
@@ -455,19 +580,74 @@ const handleCloseModal = () => {
   router.push({ name: 'clientes' });
 };
 
-const handleUpdateClient = async (client: any) => {
+// Methods - Acciones CRUD
+const handleCreateClient = async (formData: FormData) => {
+  if (!permissions.hasPermission('clientes_create') && !permissions.isSuperAdmin.value) {
+    toast.error('No tienes permiso para crear clientes');
+    return;
+  }
+  
+  try {
+    // Extraer los campos necesarios de FormData
+    const clientData = {
+      identificacion: formData.get('identificacion') as string,
+      correo: formData.get('correo') as string,
+      nombres: formData.get('nombres') as string,
+      apellidos: formData.get('apellidos') as string,
+      tel_1: formData.get('tel_1') as string || null,
+      tel_2: formData.get('tel_2') as string || null,
+      empresa: formData.get('empresa') as string || null,
+      direccion: formData.get('direccion') as string || null,
+      dob: formData.get('dob') ? new Date(formData.get('dob') as string) : null,
+      creado_por: currentUser?.id || '',
+      estado: true
+    };
+    
+    // La función createCliente ahora se encarga de crear el cliente y asociarlo con la correduría
+    const newClient = await createCliente(clientData);
+    
+    if (newClient && newClient.id_cliente) {
+      // Recargar la lista de clientes
+      await loadClientes();
+      handleCloseModal();
+      toast.success('Cliente creado correctamente');
+    } else {
+      toast.error('Error al crear el cliente: respuesta incompleta');
+    }
+  } catch (error) {
+    console.error('Error al crear cliente:', error);
+    toast.error('Error al crear el cliente');
+  }
+};
+
+const handleUpdateClient = async (formData: FormData) => {
   if (!permissions.hasPermission('clientes_edit') && !permissions.isSuperAdmin.value) {
     toast.error('No tienes permiso para editar clientes');
     return;
   }
   
   try {
-    if (!client.id_cliente) {
+    const clientId = formData.get('id_cliente');
+    if (!clientId) {
       toast.error('Error: ID de cliente no válido');
       return;
     }
     
-    await updateCliente(client.id_cliente, client);
+    // Extraer los campos necesarios de FormData
+    const clientData = {
+      identificacion: formData.get('identificacion') as string,
+      correo: formData.get('correo') as string,
+      nombres: formData.get('nombres') as string,
+      apellidos: formData.get('apellidos') as string,
+      tel_1: formData.get('tel_1') as string || null,
+      tel_2: formData.get('tel_2') as string || null,
+      empresa: formData.get('empresa') as string || null,
+      direccion: formData.get('direccion') as string || null,
+      dob: formData.get('dob') ? new Date(formData.get('dob') as string) : null,
+      modificado_por: currentUser?.id || ''
+    };
+    
+    await updateCliente(clientId.toString(), clientData);
     await loadClientes();
     handleCloseModal();
     toast.success('Cliente actualizado correctamente');
@@ -503,15 +683,24 @@ const handlePageChange = (newPage: number) => {
 
 const handleItemsPerPageChange = (newValue: number) => {
   limite.value = newValue;
+  paginaActual.value = 1; // Resetear a primera página cuando cambia el límite
   loadClientes();
 };
 
 // Cargar datos iniciales
 onMounted(async () => {
-  await loadClientes();
-  await loadUsuarios();
+  // Cargar permisos primero
   if (!permissions.permissionsLoaded.value) {
     await permissions.loadPermissions();
+  }
+  
+  // Luego cargar datos
+  await loadClientes();
+  await loadUsuarios();
+  
+  // Cargar detalles si estamos en una ruta de detalle
+  if (route.params.id && (route.name === 'cliente-detalles' || route.name === 'cliente-polizas')) {
+    await loadClienteDetalle(route.params.id.toString());
   }
 });
 
@@ -520,10 +709,24 @@ const loadUsuarios = async () => {
   try {
     const response = await getUsuariosPorCorreduria(id_correduria.value);
     if (response && response.data) {
-      usuarios.value = response.data;
+      usuarios.value = response.data.map(user => ({
+        id_usuario: user.auth_user_id,
+        nombre: user.nombre,
+        correo: user.correo,
+        auth_user_id: user.auth_user_id,
+        fecha_creado: user.fecha_creado
+      }));
     }
   } catch (error) {
     console.error('Error al cargar usuarios:', error);
   }
 };
+
+// Calcular elementos paginados
+const paginatedItems = computed(() => {
+  if (searchQuery.value && searchQuery.value.length >= 2) {
+    return filteredItems.value;
+  }
+  return clientes.value;
+});
 </script>

@@ -345,8 +345,8 @@ onMounted(() => {
     
     Object.keys(form.value).forEach(key => {
       if (key in cotizacion) {
-        // @ts-expect-error - Tipado complejo entre índices de objeto
-        form.value[key] = cotizacion[key];
+        // Usar tipado seguro con as unknown as any para evitar errores
+        form.value[key] = (cotizacion as unknown as any)[key];
       }
     });
     

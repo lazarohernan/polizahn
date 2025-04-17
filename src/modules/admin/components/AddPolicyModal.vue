@@ -479,17 +479,29 @@
         
         // Crear nombre de archivo con timestamp y UUID para evitar colisiones
         const timestamp = currentDate.getTime();
-        const fileName = `${timestamp}_${crypto.randomUUID()}.${fileExt}`;
+        const uniqueId = crypto.randomUUID();
+        const fileName = `${timestamp}_${uniqueId}.${fileExt}`;
         
-        // Estructura organizada por año/mes/correduria
-        const filePath = `${year}/${month}/${id_correduria.value}/${fileName}`;
-
+        // Estructura organizada de carpetas:
+        // 1. polizas/templates/ - Para plantillas generales
+        // 2. polizas/clientes/{id_cliente}/ - Para pólizas asignadas a clientes específicos
+        // 3. polizas/corredurias/{id_correduria}/ - Para pólizas a nivel de correduría
+        
+        // Por defecto, usamos la estructura de corredurías ya que estamos creando una póliza general
+        const filePath = `corredurias/${id_correduria.value}/${year}/${month}/${fileName}`;
+        
+        console.log('Intentando subir archivo a:', filePath, {
+          fileName: selectedFile.value.name,
+          fileType: selectedFile.value.type,
+          fileExt,
+        });
+        
         /**
          * Subir archivo al bucket 'polizas' en Supabase Storage
          * Implementa:
          * 1. Barra de progreso para seguimiento visual
          * 2. Manejo de errores detallado
-         * 3. Reintentos automáticos en caso de fallo
+         * 3. Estructura organizada de carpetas
          */
         isUploading.value = true;
         uploadStatus.value = 'Preparando archivo...';
@@ -531,45 +543,44 @@
               contentType = selectedFile.value.type || 'application/octet-stream';
           }
           
-          console.log('Attempting upload with:', {
-            filePath,
+          console.log('Intentando subir archivo a:', filePath, {
             fileName: selectedFile.value.name,
             fileType: selectedFile.value.type,
-            calculatedContentType: contentType,
+            contentType,
           });
-
+          
           // Subir el archivo usando el SDK oficial de Supabase
           const { data, error } = await supabase.storage
             .from('polizas')
             .upload(filePath, selectedFile.value, {
               cacheControl: '3600',
-              contentType, // <-- Re-add explicit contentType here
+              contentType,
               upsert: true // Sobrescribir si existe
             });
           
           if (error) {
-            console.error('Error en la primera subida:', error);
+            console.error('Error al subir el archivo:', error);
+            
+            // Si falla, intentar con un método alternativo (convertir a Blob)
             uploadStatus.value = 'Reintentando con método alternativo...';
             
-            // Intentar un segundo enfoque si el primero falla
-            // Crear un Blob con el tipo de contenido correcto
-            const fileBlob = new Blob([await selectedFile.value.arrayBuffer()], {
-              type: contentType
-            });
+            const fileContent = await selectedFile.value.arrayBuffer();
+            const fileBlob = new Blob([fileContent], { type: contentType });
             
             const secondAttempt = await supabase.storage
               .from('polizas')
               .upload(filePath, fileBlob, {
-                upsert: true,
-                contentType // <-- Add explicit contentType here as well
+                cacheControl: '3600',
+                contentType,
+                upsert: true
               });
-            
+              
             if (secondAttempt.error) {
               console.error('Error en el segundo intento:', secondAttempt.error);
               throw secondAttempt.error;
             }
             
-            console.log('Archivo subido exitosamente con método alternativo:', secondAttempt.data);
+            console.log('Archivo subido con método alternativo:', secondAttempt.data);
           } else {
             console.log('Archivo subido exitosamente:', data);
           }
@@ -577,6 +588,44 @@
           // Actualizar progreso a 100%
           uploadProgress.value = 100;
           uploadStatus.value = 'Archivo subido correctamente';
+
+          // Obtener la URL pública del archivo
+          const { data: { publicUrl } } = supabase.storage
+            .from('polizas')
+            .getPublicUrl(filePath);
+          
+          // 4. Crear la póliza con la URL del archivo
+          // Crear objeto base con propiedades conocidas
+          const newPolizaBase = {
+            nombre: name.value.trim(),
+            descripcion: description.value.trim(),
+            archivo_poliza: publicUrl, // Usar la URL pública del archivo
+            fecha_poliza: currentDate.toISOString(), // Usar timestamp actual
+            fecha_creado: currentDate.toISOString(),
+            creado_por: user_id,
+            id_correduria: id_correduria.value,
+          };
+
+          // Añadir id_aseguradora con aserción de tipo
+          const newPoliza = {
+            ...newPolizaBase,
+            id_aseguradora: selectedInsurer.value
+          } as InsertPoliza;
+
+          const { ok, message, data: polizaData } = await createPoliza(newPoliza);
+
+          if (!ok || !polizaData) {
+            // Si falla la creación de la póliza, eliminar el archivo subido
+            await supabase.storage
+              .from('polizas')
+              .remove([filePath]);
+              
+            throw new Error(message);
+          }
+
+          toast.success('Póliza creada correctamente');
+          emit('created', polizaData);
+          resetForm();
           
         } catch (uploadError) {
           console.error('Error en la subida:', uploadError);
@@ -589,44 +638,6 @@
             isUploading.value = false;
           }, 1000);
         }
-        
-        // Obtener la URL pública del archivo
-        const { data: { publicUrl } } = supabase.storage
-          .from('polizas')
-          .getPublicUrl(filePath);
-        
-        // 4. Crear la póliza
-        // Crear objeto base con propiedades conocidas
-        const newPolizaBase = {
-          nombre: name.value.trim(),
-          descripcion: description.value.trim(),
-          archivo_poliza: publicUrl, // Usar la URL pública del archivo
-          fecha_poliza: currentDate.toISOString(), // Usar timestamp actual
-          fecha_creado: currentDate.toISOString(),
-          creado_por: user_id,
-          id_correduria: id_correduria.value,
-        };
-
-        // Añadir id_aseguradora con aserción de tipo
-        const newPoliza = {
-          ...newPolizaBase,
-          id_aseguradora: selectedInsurer.value
-        } as InsertPoliza;
-
-        const { ok, message, data } = await createPoliza(newPoliza);
-
-        if (!ok || !data) {
-          // Si falla la creación de la póliza, eliminar el archivo subido
-          await supabase.storage
-            .from('polizas')
-            .remove([filePath]);
-            
-          throw new Error(message);
-        }
-
-        toast.success('Póliza creada correctamente');
-        emit('created', data);
-        resetForm();
       } catch (error) {
         console.error('Error al guardar la póliza:', error);
         

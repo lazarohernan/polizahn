@@ -42,21 +42,6 @@
         <div class="p-6">
           <!-- Perfil del cliente -->
           <div class="flex items-start gap-6">
-            <!-- Avatar -->
-            <div class="flex-none">
-              <div class="w-[120px] h-[120px] rounded-2xl shadow-lg">
-                <img
-                  :src="
-                    editedClient.foto ||
-                    `https://ui-avatars.com/api/?name=${editedClient.nombres}&background=8CBFCF&color=fff&size=120&bold=true&format=svg`
-                  "
-                  :alt="`${editedClient.nombres} ${editedClient.apellidos}`"
-                  class="w-full h-full rounded-2xl object-cover ring-4 ring-background"
-                  @error="handleImageError"
-                />
-              </div>
-            </div>
-
             <!-- Información del cliente -->
             <div class="flex-1 min-w-0">
               <div class="flex flex-col gap-3">
@@ -328,24 +313,7 @@
               </div>
 
               <div class="flex items-center gap-2 justify-center">
-                <button
-                  v-if="isEditing"
-                  type="button"
-                  class="flex items-center text-center gap-1 px-4 py-2 rounded-lg border border-input-border text-gray-200 bg-primary text-xs font-medium transition-all duration-300 hover:bg-primary hover:text-white hover:border-primary hover:-translate-y-0.5"
-                  @click="selectImage"
-                >
-                  <Upload class="w-3 h-3" />
-                  <span>Cambiar Fotografía</span>
-                </button>
-
-                <!-- Input de archivo oculto -->
-                <input
-                  ref="fileInput"
-                  type="file"
-                  accept="image/png, image/jpg, image/jpeg, image/bmp, image/tiff, image/gif"
-                  class="hidden"
-                  @change="handleImageUpload"
-                />
+                <!-- Se eliminó el botón de "Cambiar Fotografía" -->
               </div>
             </div>
           </div>
@@ -488,11 +456,9 @@ import {
   Trash2,
   AlertTriangle,
   Save,
-  Upload,
 } from 'lucide-vue-next';
 import { useToast } from 'vue-toastification';
 import { useClientes } from '@/composables/useClientes';
-import { useAvatarStorage } from '@/composables/useAvatarStorage';
 import type { Database } from '@/lib/supabase';
 
 type Usuario = {
@@ -503,9 +469,16 @@ type Usuario = {
 
 type Cliente = Database['public']['Tables']['clientes']['Row'];
 
+// Interfaz extendida para incluir todas las propiedades necesarias
+interface ClienteExtendido extends Cliente {
+  id_correduria?: string;
+  id_usuario_correduria?: string | null;
+  estado?: boolean;
+}
+
 const props = withDefaults(defineProps<{
   show: boolean;
-  client: Cliente | null;
+  client: ClienteExtendido | null;
   usuarios: Usuario[];
 }>(), {
   show: false,
@@ -521,20 +494,17 @@ const emit = defineEmits<{
 
 const toast = useToast();
 const { updateCliente, deleteCliente } = useClientes();
-const { uploadAvatar } = useAvatarStorage();
 
 // Estados
 const showDeleteConfirm = ref(false);
 const showCloseConfirm = ref(false);
 const isEditing = ref(false);
 const hasChanges = ref(false);
-const foto = ref('./user.png');
 const isLoading = ref(false);
 
 // Definir valores por defecto para un cliente
-const defaultClient: Cliente = {
+const defaultClient: ClienteExtendido = {
   id_cliente: '',
-  id_correduria: '',
   identificacion: '',
   correo: '',
   nombres: '',
@@ -547,13 +517,15 @@ const defaultClient: Cliente = {
   creado_por: null,
   fecha_modificado: null,
   modificado_por: null,
-  foto: null,
   direccion: null,
-  id_usuario_correduria: null
+  id_correduria: '',
+  id_usuario_correduria: null,
+  estado: true,
+  foto: null
 };
 
 // Función de ayuda para asegurar que los tipos sean correctos
-const mergeWithDefaults = (client: Cliente | null): Cliente => {
+const mergeWithDefaults = (client: ClienteExtendido | null): ClienteExtendido => {
   if (!client) return defaultClient;
   
   // Asegurarnos de que todos los campos requeridos estén presentes
@@ -574,27 +546,22 @@ const mergeWithDefaults = (client: Cliente | null): Cliente => {
   if (client.creado_por !== undefined) merged.creado_por = client.creado_por;
   if (client.fecha_modificado !== undefined) merged.fecha_modificado = client.fecha_modificado;
   if (client.modificado_por !== undefined) merged.modificado_por = client.modificado_por;
-  if (client.foto !== undefined) merged.foto = client.foto;
   if (client.direccion !== undefined) merged.direccion = client.direccion;
   if (client.id_usuario_correduria !== undefined) merged.id_usuario_correduria = client.id_usuario_correduria;
+  if (client.estado !== undefined) merged.estado = client.estado;
   
   return merged;
 };
 
 // Crear copia reactiva de los datos del cliente para edición
-const editedClient = ref<Cliente>(mergeWithDefaults(null));
+const editedClient = ref<ClienteExtendido>(mergeWithDefaults(null));
 
 // Actualizar el watch para usar los valores por defecto
 watch(() => props.client, (newClient) => {
   editedClient.value = mergeWithDefaults(newClient);
 }, { immediate: true });
 
-const fileInput = ref<HTMLInputElement | null>(null);
-const selectedFile = ref<File | null>(null);
-
 onMounted(() => {
-  foto.value = editedClient.value.foto as string;
-
   // Agregar configuración para event listeners pasivos
   const options = { passive: true };
   document.addEventListener('touchstart', () => {}, options);
@@ -661,13 +628,6 @@ const handleSave = async () => {
     // Actualizar cliente en Supabase
     await updateCliente(editedClient.value.id_cliente, editedClient.value);
     
-    // Manejar la subida de la foto si existe
-    if (selectedFile.value) {
-      const formData = new FormData();
-      formData.append('foto', selectedFile.value);
-      await emit('update-client', formData);
-    }
-
     toast.success('Cliente actualizado exitosamente');
     isEditing.value = false;
     hasChanges.value = false;
@@ -779,70 +739,6 @@ const updateName = (part: 'firstName' | 'lastName', value: string) => {
   editedClient.value.nombres = `${parts.firstName} ${parts.lastName}`.trim();
 };
 
-const handleImageUpload = async (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  if (!target.files?.length) return;
-
-  const file = target.files[0];
-  const maxSize = 5 * 1024 * 1024; // 5MB
-  const acceptedFormats = [
-    'image/png',
-    'image/jpg',
-    'image/jpeg',
-    'image/bmp',
-    'image/tiff',
-    'image/gif',
-  ];
-
-  if (!acceptedFormats.includes(file.type)) {
-    toast.error('Formato de imagen no permitido. Usa PNG, JPG, JPEG, BMP, TIFF o GIF.');
-    return;
-  }
-
-  if (file.size > maxSize) {
-    toast.error('La imagen es demasiado grande. El tamaño máximo permitido es 5MB.');
-    return;
-  }
-
-  try {
-    selectedFile.value = file;
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      if (e.target?.result && typeof e.target.result === 'string') {
-        // Subir la imagen usando useAvatarStorage
-        const { url: avatarUrl, error: uploadError } = await uploadAvatar(
-          e.target.result,
-          editedClient.value.id_cliente
-        );
-
-        if (uploadError) {
-          throw new Error(uploadError);
-        }
-
-        // Actualizar la vista previa
-        editedClient.value = {
-          ...editedClient.value,
-          foto: avatarUrl
-        };
-      }
-    };
-    reader.onerror = () => {
-      toast.error('Error al cargar la vista previa de la imagen');
-    };
-    reader.readAsDataURL(file);
-  } catch (error) {
-    console.error('Error handling image upload:', error);
-    toast.error('Error al procesar la imagen');
-  }
-};
-
-// Function to open the file input dialog
-const selectImage = () => {
-  if (fileInput.value) {
-    fileInput.value.click();
-  }
-};
-
 const getUsuarioNombre = computed(() => {
   return (id: string) => {
     if (!props.usuarios || props.usuarios.length === 0) return 'N/A';
@@ -850,12 +746,4 @@ const getUsuarioNombre = computed(() => {
     return usuario ? usuario.nombre : 'N/A';
   };
 });
-
-// Agregar la función handleImageError
-const handleImageError = (event: Event) => {
-  const imgElement = event.target as HTMLImageElement;
-  if (imgElement) {
-    imgElement.src = `https://ui-avatars.com/api/?name=${editedClient.value.nombres}&background=8CBFCF&color=fff&size=120&bold=true&format=svg`;
-  }
-};
 </script>

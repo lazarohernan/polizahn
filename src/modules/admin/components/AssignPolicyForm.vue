@@ -406,7 +406,7 @@
   const paymentDate = ref<string | null>(null); //Fecha de pago
   const pagoUno = ref<number>(0); //Primer pago
   const numeroPoliza = ref<string | null>(null); //Número de póliza
-  const statusPoliza = ref<string | null>(null); //Estado de la póliza
+  const statusPoliza = ref<string | null>(null); //Estado de la póliza (texto descriptivo)
   const observacion = ref<string | null>(null); //Observación
 
   //Just for view mode
@@ -479,8 +479,7 @@
         paymentDate.value !== (existingPlanDePago.value?.fecha_de_pago ?? '') ||
         pagoUno.value !== (existingPlanDePago.value?.pago_uno ?? 0) ||
         numeroPoliza.value !== (existingPlanDePago.value?.numero_poliza ?? null) ||
-        statusPoliza.value !== (existingPlanDePago.value?.status ?? null) ||
-        observacion.value !== (existingPlanDePago.value?.observacion ?? null) ||
+        statusPoliza.value !== (existingPlanDePago.value?.observacion ?? null) ||
         !!archivoPoliza.value;
 
       emit('hasChanges', hasChanges);
@@ -518,8 +517,8 @@
       totalPremium.value = Number(existingPlanDePago.value.prima_total?.toString() || '0');
       term.value = existingPlanDePago.value.plazo;
       numeroPoliza.value = existingPlanDePago.value.numero_poliza;
-      statusPoliza.value = existingPlanDePago.value.status ?? 'sin estatus';
-      observacion.value = existingPlanDePago.value.observacion ?? 'sin observación';
+      statusPoliza.value = existingPlanDePago.value.observacion || 'pendiente';
+      observacion.value = existingPlanDePago.value.observacion || '';
       pagoUno.value = Number(existingPlanDePago.value.pago_uno?.toString() || '0');
       paymentDate.value = existingPlanDePago.value.fecha_de_pago.toString().split('T')[0];
       archivoPolizaUrl.value = existingPlanDePago.value.archivo_poliza as string;
@@ -643,8 +642,8 @@
           pago_uno: pagoUno.value,
           numero_poliza: numeroPoliza.value,
           archivo_poliza: archivoPoliza.value ? await uploadFile(archivoPoliza.value) : undefined,
-          status: statusPoliza.value || undefined,
-          observacion: observacion.value || undefined,
+          observacion: statusPoliza.value || undefined,
+          estado: true,
           modificado_por: localStorage.getItem('user_id') || '',
           fecha_modificado: new Date().toISOString()
         };
@@ -665,10 +664,10 @@
           pago_uno: pagoUno.value,
           numero_poliza: numeroPoliza.value,
           archivo_poliza: archivoPoliza.value ? await uploadFile(archivoPoliza.value) : null,
-          status: statusPoliza.value || 'pendiente',
-          observacion: observacion.value || null,
+          observacion: statusPoliza.value || null,
+          estado: true,
           creado_por: localStorage.getItem('user_id') || '',
-          estado: true
+          fecha_creado: new Date().toISOString()
         };
 
         const { ok, message } = await createPlanDePago(createData);
@@ -691,19 +690,13 @@
       paymentDate.value !== (existingPlanDePago.value?.fecha_de_pago ?? '') ||
       pagoUno.value !== (existingPlanDePago.value?.pago_uno ?? 0) ||
       numeroPoliza.value !== (existingPlanDePago.value?.numero_poliza ?? null) ||
-      statusPoliza.value !== (existingPlanDePago.value?.status ?? null) ||
-      observacion.value !== (existingPlanDePago.value?.observacion ?? null) ||
+      statusPoliza.value !== (existingPlanDePago.value?.observacion ?? null) ||
       !!archivoPoliza.value;
 
     if (!hasChanges || props.mode === 'view' || props.mode === 'edit') {
       emit('cancel');
     }
   };
-
-  interface StorageResponse {
-    data: { publicUrl: string }
-    error: Error | null
-  }
 
   const uploadFile = async (file: File): Promise<string> => {
     try {
@@ -714,25 +707,73 @@
       const fileExt = file.name.split('.').pop();
       if (!fileExt) throw new Error('No se pudo obtener la extensión del archivo');
       
-      const fileName = `polizas/${crypto.randomUUID()}.${fileExt}`;
+      // Estructura organizada por cliente
+      const currentDate = new Date();
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const timestamp = currentDate.getTime();
+      const uniqueId = crypto.randomUUID();
+      
+      // Usar la estructura: polizas/clientes/{id_cliente}/{year}/{month}/{timestamp}_{uniqueId}.{fileExt}
+      const filePath = `clientes/${props.client.id_cliente}/${year}/${month}/${timestamp}_${uniqueId}.${fileExt}`;
+      
+      console.log('Subiendo archivo de póliza asignada a:', filePath);
+      
+      // Determinar el tipo de contenido basado en la extensión
+      const fileExtLower = fileExt.toLowerCase();
+      let contentType;
+      
+      switch(fileExtLower) {
+        case 'pdf':
+          contentType = 'application/pdf';
+          break;
+        case 'doc':
+          contentType = 'application/msword';
+          break;
+        case 'docx':
+          contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          break;
+        default:
+          contentType = file.type || 'application/octet-stream';
+      }
       
       const { error: uploadError } = await supabase.storage
-        .from('archivos')
-        .upload(fileName, file, {
+        .from('polizas')
+        .upload(filePath, file, {
           cacheControl: '3600',
+          contentType,
           upsert: true
         });
       
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Error al subir el archivo:', uploadError);
+        
+        // Intentar con método alternativo si falla
+        const fileContent = await file.arrayBuffer();
+        const fileBlob = new Blob([fileContent], { type: contentType });
+        
+        const secondAttempt = await supabase.storage
+          .from('polizas')
+          .upload(filePath, fileBlob, {
+            cacheControl: '3600',
+            contentType,
+            upsert: true
+          });
+          
+        if (secondAttempt.error) {
+          console.error('Error en el segundo intento:', secondAttempt.error);
+          throw secondAttempt.error;
+        }
+      }
       
-      const response = supabase.storage
-        .from('archivos')
-        .getPublicUrl(fileName) as StorageResponse;
+      // Obtener la URL pública del archivo
+      const { data: { publicUrl } } = supabase.storage
+        .from('polizas')
+        .getPublicUrl(filePath);
       
-      if (response.error) throw response.error;
-      if (!response.data?.publicUrl) throw new Error('No se pudo obtener la URL pública del archivo');
+      if (!publicUrl) throw new Error('No se pudo obtener la URL pública del archivo');
       
-      return response.data.publicUrl;
+      return publicUrl;
     } catch (error) {
       console.error('Error al subir el archivo:', error);
       throw error;

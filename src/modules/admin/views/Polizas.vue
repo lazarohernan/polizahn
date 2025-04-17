@@ -246,8 +246,8 @@ const filteredPolicies = computed(() => {
   const query = searchQuery.value.toLowerCase();
   return polizas.value.filter(
     poliza => 
-      poliza.nombre?.toLowerCase().includes(query) ||
-      poliza.descripcion?.toLowerCase().includes(query)
+      (poliza.nombre ? poliza.nombre.toLowerCase().includes(query) : false) ||
+      (poliza.descripcion ? poliza.descripcion.toLowerCase().includes(query) : false)
   );
 });
 

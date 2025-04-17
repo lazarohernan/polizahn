@@ -77,7 +77,7 @@
 </script>
 
 <template>
-  <div class="min-h-screen bg-background flex items-center justify-center p-4 sm:p-6">
+  <div class="min-h-screen public-page-gradient flex items-center justify-center p-4 sm:p-6">
     <div
       class="w-full max-w-[1000px] bg-background rounded-3xl border border-container-border shadow-lg overflow-hidden relative"
     >

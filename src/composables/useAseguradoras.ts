@@ -6,7 +6,7 @@ import type { Aseguradora } from '@/modules/admin/interfaces/aseguradora_interfa
 export const useAseguradoras = () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
-  const { uploadFile } = useStorage()
+  const { uploadLogo } = useStorage()
 
   const getAseguradoras = async () => {
     try {
@@ -72,9 +72,9 @@ export const useAseguradoras = () => {
       error.value = null
 
       // Si hay un logo, primero lo subimos al storage
-      let logo_url = null
+      let logo_url: string | null = null
       if (aseguradora.logo && typeof aseguradora.logo !== 'string') {
-        logo_url = await uploadFile(aseguradora.logo as File, 'aseguradoras', 'logos')
+        logo_url = await uploadLogo(aseguradora.logo as File, aseguradora.id_aseguradora || crypto.randomUUID())
       }
 
       const userId = localStorage.getItem('userId')
@@ -120,9 +120,9 @@ export const useAseguradoras = () => {
       error.value = null
 
       // Si hay un nuevo logo, primero lo subimos al storage
-      let logo_url = undefined
+      let logo_url: string | undefined = undefined
       if (aseguradora.logo && typeof aseguradora.logo !== 'string') {
-        logo_url = await uploadFile(aseguradora.logo as File, 'aseguradoras', 'logos')
+        logo_url = await uploadLogo(aseguradora.logo as File, id_aseguradora)
       }
 
       // Actualizar el registro de la aseguradora
@@ -134,7 +134,7 @@ export const useAseguradoras = () => {
           nombre_gestor: aseguradora.nombre_gestor,
           tel_gestor: aseguradora.tel_gestor,
           correo_gestor: aseguradora.correo_gestor,
-          ...(logo_url && { logo: logo_url })
+          ...(logo_url ? { logo: logo_url } : {})
         })
         .eq('id_aseguradora', id_aseguradora)
         .select()

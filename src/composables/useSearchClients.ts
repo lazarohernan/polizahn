@@ -15,8 +15,8 @@ export function useSearchClients() {
       if (!query.trim()) {
         const { data, error: searchError } = await supabase
           .from('clientes')
-          .select()
-          .eq('id_correduria', id_correduria)
+          .select('*, clientes_por_correduria!inner(*)')
+          .eq('clientes_por_correduria.id_correduria', id_correduria)
           .order('nombres')
           .limit(50);
 
@@ -35,8 +35,8 @@ export function useSearchClients() {
 
       const { data, error: searchError } = await supabase
         .from('clientes')
-        .select()
-        .eq('id_correduria', id_correduria)
+        .select('*, clientes_por_correduria!inner(*)')
+        .eq('clientes_por_correduria.id_correduria', id_correduria)
         .textSearch('search_vector', searchQuery)
         .order('nombres')
         .limit(50);

@@ -76,6 +76,12 @@ export const adminRoutes: RouteRecordRaw = {
       // meta: { requiresAuth: true }
     },
     {
+      path: 'roles',
+      name: 'roles',
+      component: () => import('@/modules/admin/views/Usuarios.vue'), // Usando la vista de Usuarios.vue temporalmente
+      beforeEnter: adminGuard,
+    },
+    {
       path: 'notificaciones',
       name: 'notificaciones',
       component: () => import('@/modules/admin/views/Notificaciones.vue'),

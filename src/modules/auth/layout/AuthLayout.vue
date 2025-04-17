@@ -1,7 +1,7 @@
 <template>
   <!-- Contenedor principal con fondo adaptativo para modo oscuro -->
   <div
-    class="min-h-screen w-full bg-background overflow-x-hidden"
+    class="min-h-screen w-full bg-background overflow-x-hidden public-page-gradient"
   >
     <div
       class="min-h-screen w-full flex flex-col items-center justify-center overflow-y-auto"

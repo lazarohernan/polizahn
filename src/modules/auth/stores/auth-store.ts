@@ -2,13 +2,15 @@ import { ref, computed } from 'vue';
 import { useLocalStorage } from '@vueuse/core';
 import { defineStore } from 'pinia';
 import { supabase } from '@/lib/supabase';
-import type { User, AuthChangeEvent, Session } from '@supabase/supabase-js';
+import type { User } from '@supabase/supabase-js';
 import { useSupabaseAuth } from '@/composables/useSupabaseAuth';
+import { useToast } from 'vue-toastification';
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
   const loading = ref(true);
   const { signIn, signOut } = useSupabaseAuth();
+  const toast = useToast();
 
   // Datos del perfil
   const nombre = ref(useLocalStorage('nombre', ''));
@@ -18,6 +20,40 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!user.value);
 
+  /**
+   * Intenta obtener el id_correduria para un usuario específico
+   */
+  const fetchUserCorreduria = async (userId: string): Promise<string> => {
+    try {
+      // Verificar el rol del usuario para no hacer consultas innecesarias
+      const { data: { user } } = await supabase.auth.getUser();
+      const authRole = user?.app_metadata?.role || user?.user_metadata?.role;
+      
+      // Si es superadmin, retornar string vacío ya que no necesita correduría
+      if (authRole === 'superadmin') {
+        console.log('Usuario superadmin: No requiere obtener correduría');
+        return '';
+      }
+      
+      // Consultar la correduría asignada al usuario
+      const { data, error } = await supabase
+        .from('usuarios_corredurias')
+        .select('id_correduria')
+        .eq('auth_user_id', userId)
+        .single();
+      
+      if (error) {
+        console.warn('No se encontró correduría asignada:', error);
+        return '';
+      }
+      
+      return data?.id_correduria || '';
+    } catch (error) {
+      console.error('Error al obtener correduría:', error);
+      return '';
+    }
+  };
+
   const initialize = async () => {
     try {
       loading.value = true;
@@ -26,31 +62,75 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = session?.user ?? null;
 
       if (user.value) {
-        // Obtener datos del perfil
-        const { data: profile } = await supabase
-          .from('perfiles')
-          .select('*')
-          .eq('auth_user_id', user.value.id)
-          .single();
+        // Verificar el rol del usuario
+        const userRole = user.value?.app_metadata?.role || 
+                        user.value?.user_metadata?.role;
+        
+        console.log('Rol del usuario:', userRole);
+        
+        // Si es superadmin, no necesitamos obtener datos adicionales de correduría
+        if (userRole === 'superadmin') {
+          console.log('Usuario superadmin: No requiere correduría');
+          id_correduria.value = '';
+          loading.value = false;
+          return; // Finalizar inicialización temprano para superadmin
+        }
 
-        if (profile) {
-          nombre.value = profile.nombre || '';
-          correo.value = profile.correo || '';
-          foto.value = profile.avatar_url || '';
-          // Debemos obtener la correduría de la tabla usuarios_corredurias
-          const { data: userCorreduria } = await supabase
-            .from('usuarios_corredurias')
-            .select('id_correduria')
+        // Solo para roles que no son superadmin, obtenemos perfil y correduría
+        try {
+          // Obtener datos del perfil si existe
+          const { data: profile } = await supabase
+            .from('perfiles')
+            .select('*')
             .eq('auth_user_id', user.value.id)
             .single();
-            
-          id_correduria.value = userCorreduria?.id_correduria || '';
+
+          if (profile) {
+            nombre.value = profile.nombre || '';
+            correo.value = profile.correo || '';
+            foto.value = profile.avatar_url || '';
+          }
+          
+          // Obtener correduría solo para roles distintos de superadmin
+          try {
+            const userCorreduriaId = await fetchUserCorreduria(user.value.id);
+            id_correduria.value = userCorreduriaId;
+          } catch (corrError) {
+            console.warn('No se pudo obtener correduría:', corrError);
+            id_correduria.value = '';
+          }
+        } catch (error) {
+          console.warn('Error al obtener datos de perfil:', error);
         }
       }
 
-      // Escuchar cambios en la autenticación
-      supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+      // Configurar listener para cambios de autenticación
+      supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log(`Cambio en autenticación: ${event}`);
         user.value = session?.user ?? null;
+        
+        if (event === 'SIGNED_OUT') {
+          nombre.value = '';
+          correo.value = '';
+          foto.value = '';
+          id_correduria.value = '';
+        } else if (event === 'SIGNED_IN' && session?.user) {
+          const userRole = session.user?.app_metadata?.role || 
+                          session.user?.user_metadata?.role;
+                          
+          // Si es superadmin, no hacer nada más
+          if (userRole === 'superadmin') {
+            return;
+          }
+          
+          try {
+            // Reintentar obtener datos de perfil y correduría
+            await initialize();
+          } catch (error) {
+            console.error('Error al reinicializar después del login:', error);
+            toast.error('Error al cargar los datos de tu perfil');
+          }
+        }
       });
     } catch (error) {
       console.error('Error initializing auth:', error);
@@ -137,6 +217,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     logout,
     getUserProfile,
-    updateAvatarUrl
+    updateAvatarUrl,
+    fetchUserCorreduria
   };
 });

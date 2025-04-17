@@ -72,7 +72,7 @@ const router = createRouter({
 // Middleware global para proteger rutas y manejar la inicialización
 router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore();
-  const publicRoutes = ['login', 'register', 'home', 'registration-pending', 'check-registration-status', 'terminos-de-uso', 'politica-de-privacidad'];
+  const publicRoutes = ['login', 'register', 'home', 'registration-pending', 'check-registration-status', 'terminos-de-uso', 'politica-de-privacidad', 'recover-password'];
 
   // Si la ruta no requiere autenticación, permitir acceso
   if (publicRoutes.includes(to.name as string)) {

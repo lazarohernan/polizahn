@@ -4,7 +4,7 @@ const router = useRouter()
 </script>
 
 <template>
-  <div class="min-h-screen w-full bg-background">
+  <div class="min-h-screen w-full public-page-gradient">
     <!-- Botón de regreso -->
     <div class="w-full max-w-[1200px] mx-auto px-4 pt-4">
       <button 

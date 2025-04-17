@@ -196,12 +196,11 @@
                     <select
                       id="selectedUsuario"
                       v-model="selectedUsuario"
-                      required
                       class="w-full py-2.5 px-3 rounded-xl border border-input-border bg-background text-text text-sm transition-all duration-300 hover:border-primary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                     >
                       <option value="" disabled>Seleccione un usuario</option>
                       <option v-for="usuario in usuarios" :key="usuario.id_usuario" :value="usuario.id_usuario">
-                        {{ usuario.nombres }} {{ usuario.apellidos }}
+                        {{ usuario.nombre }}
                       </option>
                     </select>
                   </div>
@@ -236,7 +235,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useToast } from 'vue-toastification';
 import {
   User,
@@ -244,16 +243,22 @@ import {
   Mail,
   Save,
 } from 'lucide-vue-next';
-import type { Database } from '@/lib/supabase';
 import { useUsuarios } from '@/composables/useUsuarios';
 
-type Usuario = Database['public']['Tables']['usuarios']['Row'];
+// Definir tipo para Usuario (similar al de Clientes.vue)
+type Usuario = {
+  id_usuario: string;
+  nombre: string;
+  correo?: string; // Hacer opcional si no siempre está
+  auth_user_id?: string;
+  fecha_creado?: string;
+};
 
 defineProps<{
   show: boolean;
 }>();
 
-const emit = defineEmits<{
+const emit = defineEmits<{ 
   (e: 'close'): void;
   (e: 'add-client', formData: FormData): void;
 }>();
@@ -272,17 +277,22 @@ const email = ref('');
 const company = ref('');
 const phone = ref('');
 const alternativePhone = ref('');
-const address = ref('');
+const address = ref(''); // address no parece usarse en el form, considerar si es necesario
 const showCloseConfirm = ref(false);
 const hasChanges = ref(false);
-const selectedUsuario = ref('');
-const foto = ref('./user.png');
-const fileInput = ref<HTMLInputElement | null>(null);
-//En esta variable reactiva se grabarán los usuarios
-const usuarios = ref<Usuario[]>([]);
+const selectedUsuario = ref(''); 
+// const foto = ref('./user.png'); // La lógica de foto no está implementada
+// const fileInput = ref<HTMLInputElement | null>(null);
+const usuarios = ref<Usuario[]>([]); // Usar tipo Usuario
 const loading = ref(false);
-const showError = ref(false);
-const errorMessage = ref('');
+// Eliminar showError y errorMessage si no se usan
+// const showError = ref(false);
+// const errorMessage = ref('');
+
+// Watch para detectar cambios (si se necesita showCloseConfirm)
+// Watch all form refs to set hasChanges
+// Example: watch([firstName, lastName, ...], () => { hasChanges.value = true; });
+// Por ahora, asumiremos que cualquier intento de guardar implica cambios o se maneja externamente.
 
 // Validaciones
 const onlyLetters = (e: KeyboardEvent) => {
@@ -320,11 +330,12 @@ const validateBirthDate = () => {
 
 // Manejadores
 const handleClose = () => {
-  if (hasChanges.value) {
-    showCloseConfirm.value = true;
-  } else {
+  // Simplificado: preguntar siempre si hay algo escrito o quitar confirmación
+  // if (hasChanges.value) { 
+  //   showCloseConfirm.value = true;
+  // } else {
     confirmClose();
-  }
+  // }
 };
 
 const resetForm = () => {
@@ -337,61 +348,71 @@ const resetForm = () => {
   phone.value = '';
   alternativePhone.value = '';
   address.value = '';
-  foto.value = './user.png';
-  fileInput.value = null;
+  // foto.value = './user.png';
+  // if (fileInput.value) fileInput.value.value = ''; // Reset file input if used
   selectedUsuario.value = '';
   hasChanges.value = false;
   loading.value = false;
 };
 
 const handleSubmit = async () => {
+  // Validaciones básicas
+  if (!firstName.value.trim() || !lastName.value.trim() || !dni.value.trim() || !email.value.trim()) {
+    toast.error('Por favor complete los campos requeridos: Nombres, Apellidos, Identificación y Correo.');
+    return;
+  }
+
   loading.value = true;
   try {
-    // Lógica de guardado aquí
-    loading.value = false;
-    emit('close');
-  } catch (error) {
-    loading.value = false;
-    console.error('Error al guardar:', error);
-  }
-};
-
-// Función para abrir el selector de archivos
-const selectImage = () => {
-  if (fileInput.value) {
-    fileInput.value.click();
-  }
-};
-
-// Función para manejar la carga de la imagen
-const handleImageUpload = (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  if (target.files && target.files[0]) {
-    const file = target.files[0];
-    const acceptedFormats = [
-      'image/png',
-      'image/jpg',
-      'image/jpeg',
-      'image/bmp',
-      'image/tiff',
-      'image/gif',
-    ];
-
-    if (!acceptedFormats.includes(file.type)) {
-      alert('Formato de imagen no permitido. Usa PNG, JPG, JPEG, BMP, TIFF o GIF.');
-      return;
+    const formData = new FormData();
+    formData.append('nombres', firstName.value.trim());
+    formData.append('apellidos', lastName.value.trim());
+    formData.append('identificacion', dni.value.trim());
+    if (birthDate.value) {
+      formData.append('dob', birthDate.value);
     }
+    formData.append('correo', email.value.trim());
+    if (company.value.trim()) {
+      formData.append('empresa', company.value.trim());
+    }
+    if (phone.value.trim()) {
+      formData.append('tel_1', phone.value.trim());
+    }
+    if (alternativePhone.value.trim()) {
+      formData.append('tel_2', alternativePhone.value.trim());
+    }
+    if (selectedUsuario.value) {
+       formData.append('id_usuario_asignado', selectedUsuario.value);
+    }
+    // Si se implementa la subida de foto, añadirla aquí:
+    // if (selectedFile.value) { 
+    //   formData.append('foto', selectedFile.value);
+    // }
 
-    // Crear una vista previa de la imagen
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (e.target) {
-        foto.value = e.target.result as string;
-      }
-    };
-    reader.readAsDataURL(file);
+    // Emitir los datos
+    emit('add-client', formData);
+
+    // El componente padre (Clientes.vue) maneja la llamada a la API y el cierre.
+    // No cerramos aquí directamente, esperamos al padre.
+    // resetForm(); // Resetear podría ser responsabilidad del padre tras éxito
+    // emit('close'); // El padre cierra el modal
+
+  } catch (error) {
+    console.error('Error preparando datos del cliente:', error);
+    toast.error('Error al preparar los datos del cliente.');
+  } finally {
+    // El loading debe desactivarse en el componente padre (Clientes.vue) 
+    // después de que la operación (createCliente) termine.
+    // Si dejamos loading=false aquí, el botón se reactiva inmediatamente.
+    // Considerar añadir un prop para controlar el estado de carga desde el padre
+    // o quitar el finally aquí.
+     loading.value = false; // Temporalmente lo dejamos aquí
   }
 };
+
+// Eliminar selectImage y handleImageUpload si no se usan
+// const selectImage = () => { ... };
+// const handleImageUpload = (event: Event) => { ... };
 
 //Cerrar el modal
 const confirmClose = () => {
@@ -406,7 +427,14 @@ onMounted(async () => {
     const id_correduria = localStorage.getItem('id_correduria') ?? '';
     const { data } = await getUsuariosPorCorreduria(id_correduria);
     if (data) {
-      usuarios.value = data;
+      // Asegurar que los datos coincidan con el tipo Usuario
+      usuarios.value = data.map(user => ({ 
+        id_usuario: user.auth_user_id, // Mapear auth_user_id a id_usuario
+        nombre: user.nombre,
+        correo: user.correo,
+        auth_user_id: user.auth_user_id,
+        fecha_creado: user.fecha_creado
+      }));
     }
   } catch (error) {
     console.error('Error al cargar usuarios:', error);

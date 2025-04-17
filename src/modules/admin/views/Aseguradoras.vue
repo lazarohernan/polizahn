@@ -42,7 +42,7 @@
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <div
           v-for="aseguradora in filteredInsurers"
-          :key="aseguradora.id_aseguradora"
+          :key="(aseguradora as Aseguradora).id_aseguradora"
           class="bg-container-bg border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:shadow-lg"
         >
           <div class="relative h-[100px] overflow-hidden">
@@ -50,7 +50,7 @@
             <div 
               class="absolute inset-0"
               :style="{
-                background: insurerColors.get(aseguradora.nombre) || getDefaultGradient()
+                background: insurerColors.get((aseguradora as Aseguradora).nombre) || getDefaultGradient()
               }"
             />
 
@@ -59,7 +59,7 @@
               class="absolute top-3 left-3 w-14 h-14 rounded-xl bg-container-bg p-1 shadow-lg transition-transform duration-300 z-10 hover:scale-105"
             >
               <div
-                v-if="isGeneratedAvatar(aseguradora.logo as string)"
+                v-if="isGeneratedAvatar((aseguradora as Aseguradora).logo as string)"
                 class="w-full h-full rounded-lg flex items-center justify-center text-xl font-semibold text-white"
                 :style="{
                   background: getAvatarBackground()
@@ -166,14 +166,28 @@
   // Desestructuramos response para obtener aseguradoras
   const aseguradoras = computed(() => response.value?.data ?? []);
 
-  //Variables para habilitar el SEARCH
-  const { searchQuery, filteredItems } = useSearchClients(aseguradoras, ['nombre', 'descripcion']);
-  const filteredInsurers = ref(filteredItems.value);
+  // Variables para la búsqueda local
+  const searchQuery = ref('');
+  const filteredInsurers = ref<Aseguradora[]>([]);
 
-  // Sincronizar filteredInsurers con filteredItems
-  watch(filteredItems, (newVal) => {
-    filteredInsurers.value = newVal;
-  });
+  // Función para filtrar aseguradoras localmente
+  const filterAseguradoras = () => {
+    if (!searchQuery.value.trim()) {
+      filteredInsurers.value = aseguradoras.value;
+      return;
+    }
+    
+    const query = searchQuery.value.toLowerCase().trim();
+    filteredInsurers.value = aseguradoras.value.filter(aseguradora => 
+      aseguradora.nombre.toLowerCase().includes(query) || 
+      aseguradora.descripcion.toLowerCase().includes(query)
+    );
+  };
+  
+  // Observar cambios en el query de búsqueda y en la lista de aseguradoras
+  watch([searchQuery, aseguradoras], () => {
+    filterAseguradoras();
+  }, { immediate: true });
 
   //-----------------FUNCIONES SOBRE COLORES Y AVATARES
   const { extractColors, createGradient, getDefaultGradient, getAvatarBackground } = useColorThief();

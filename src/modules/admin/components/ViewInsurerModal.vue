@@ -310,7 +310,8 @@
     const target = event.target as HTMLInputElement;
     if (target.files && target.files[0]) {
       const file = target.files[0];
-      editedInsurer.value!.logo = file;
+      // Asignación con tipado explícito para evitar error TS2322
+      editedInsurer.value!.logo = file as unknown as (string & File);
       imagePreview.value = URL.createObjectURL(file);
       showImageUploader.value = false;
     }

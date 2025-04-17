@@ -56,8 +56,11 @@
           </div>
         </div>
 
-        <!-- Espacio para equilibrar el layout -->
-        <div class="relative lg:h-[600px] hidden lg:block">
+        <!-- Componente Shield3D en el lado derecho -->
+        <div class="relative lg:h-[600px] hidden lg:flex items-center justify-center">
+          <div class="w-full h-full max-w-[500px] max-h-[500px]">
+            <Shield3D />
+          </div>
         </div>
       </div>
     </div>
@@ -66,4 +69,5 @@
 
 <script setup lang="ts">
 import { PresentationIcon } from 'lucide-vue-next'
+import Shield3D from '@/components/Shield3D.vue'
 </script>

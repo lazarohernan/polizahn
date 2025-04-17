@@ -73,7 +73,6 @@ export interface Database {
       clientes: {
         Row: {
           id_cliente: string
-          id_correduria: string
           identificacion: string
           correo: string
           nombres: string
@@ -88,11 +87,9 @@ export interface Database {
           modificado_por: string | null
           foto: string | null
           direccion: string | null
-          id_usuario_correduria: string | null
         }
         Insert: {
           id_cliente?: string
-          id_correduria: string
           identificacion: string
           correo: string
           nombres: string
@@ -107,11 +104,9 @@ export interface Database {
           modificado_por?: string | null
           foto?: string | null
           direccion?: string | null
-          id_usuario_correduria?: string | null
         }
         Update: {
           id_cliente?: string
-          id_correduria?: string
           identificacion?: string
           correo?: string
           nombres?: string
@@ -126,7 +121,26 @@ export interface Database {
           modificado_por?: string | null
           foto?: string | null
           direccion?: string | null
-          id_usuario_correduria?: string | null
+        }
+      }
+      clientes_por_correduria: {
+        Row: {
+          id_cliente_correduria: string
+          id_cliente: string
+          id_correduria: string
+          fecha_creado: Date
+        }
+        Insert: {
+          id_cliente_correduria?: string
+          id_cliente: string
+          id_correduria: string
+          fecha_creado?: Date
+        }
+        Update: {
+          id_cliente_correduria?: string
+          id_cliente?: string
+          id_correduria?: string
+          fecha_creado?: Date
         }
       }
       polizas: {
@@ -182,7 +196,6 @@ export interface Database {
           numero_poliza: string
           archivo_poliza: string | null
           observacion: string | null
-          status: string
           estado: boolean
           creado_por: string
           fecha_creado: string
@@ -200,7 +213,6 @@ export interface Database {
           numero_poliza: string
           archivo_poliza?: string | null
           observacion?: string | null
-          status: string
           estado?: boolean
           creado_por: string
           fecha_creado?: string
@@ -218,7 +230,6 @@ export interface Database {
           numero_poliza?: string
           archivo_poliza?: string | null
           observacion?: string | null
-          status?: string
           estado?: boolean
           creado_por?: string
           fecha_creado?: string

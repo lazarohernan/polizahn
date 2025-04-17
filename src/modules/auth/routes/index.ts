@@ -14,7 +14,7 @@ export const authRoutes: RouteRecordRaw = {
       component: () => import('@/modules/auth/views/Login.vue'),
     },
     {
-      path: '/recover-password',
+      path: 'recover-password',
       name: 'recover-password',
       component: () => import('@/modules/auth/views/RecoverPassword.vue'),
     },

@@ -31,6 +31,11 @@
   --color-gray-800: #1f2937;
   --color-gray-900: #111827;
 
+  /* Degradado para páginas públicas */
+  --color-gradient-start: #f5f8ff;
+  --color-gradient-middle: #ebf2ff;
+  --color-gradient-end: #e6eeff;
+  
   /* Semantic colors - Light theme */
   --color-background: var(--color-white);
   --color-background-rgb: 255, 255, 255;
@@ -124,10 +129,27 @@
     }
   }
 
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    min-height: 100vh;
+  }
+
   body {
     @apply m-0 min-w-[320px] min-h-screen;
     color: var(--color-text);
     background-color: var(--color-background);
+    padding: 0;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
   }
 
   a {
@@ -243,4 +265,20 @@
 /* Ajustes de iconos por tipo */
 .Vue-Toastification__toast.custom-toast .Vue-Toastification__icon {
   color: var(--color-white);
+}
+
+/* Clases para páginas públicas */
+.public-page-gradient {
+  background: linear-gradient(
+    135deg,
+    rgb(78, 150, 167) 0%,
+    rgb(164, 218, 230) 100%
+  );
+  background-attachment: fixed;
+}
+
+/* Modo oscuro: mantener una apariencia más sobria en páginas públicas */
+.dark .public-page-gradient {
+  background: var(--color-background);
+  background-image: none;
 }

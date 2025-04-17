@@ -104,7 +104,6 @@ export interface Notification {
 
 export interface Cliente {
   id_cliente: string;
-  id_correduria: string;
   identificacion: string;
   correo: string;
   nombres: string;
@@ -115,9 +114,15 @@ export interface Cliente {
   tel_2: string | null;
   direccion: string | null;
   foto: string | null;
-  estado: boolean;
-  created_at: string;
-  updated_at: string;
-  id_usuario_correduria: string | null;
+  fecha_creado: string;
+  creado_por: string | null;
+  fecha_modificado: string | null;
+  modificado_por: string | null;
   total_polizas?: number;
+  clientes_por_correduria?: {
+    id_cliente_correduria: string;
+    id_correduria: string;
+    fecha_creado: string;
+  }[];
+  id_correduria?: string; // Para compatibilidad con componentes existentes
 }
