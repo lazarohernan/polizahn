@@ -41,8 +41,13 @@
     </div>
     
     <!-- Cuota a la que corresponde el pago -->
-    <div v-if="detallesPlan && detallesPlan.length > 0" class="flex flex-col gap-2">
-      <label class="text-sm font-medium">Cuota a aplicar el pago</label>
+    <div class="flex flex-col gap-2 border border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
+      <label class="text-sm font-medium flex items-center">
+        <span class="text-yellow-700 dark:text-yellow-400 mr-2">⚠️</span>
+        <span>Cuota a aplicar el pago <span class="text-red-500">*</span></span>
+      </label>
+      <p class="text-xs text-yellow-700 dark:text-yellow-300 mb-2">Para un correcto seguimiento, es importante asociar el pago a una cuota específica.</p>
+      
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
         <div
           v-for="detalle in cuotasPendientes"
@@ -62,7 +67,19 @@
             <span class="text-xs text-muted-foreground">Vence: {{ formatDate(detalle.fecha_vencimiento) }}</span>
           </div>
         </div>
+        <div
+          class="border border-input rounded-lg p-3 cursor-pointer transition-all duration-200"
+          :class="formData.id_detalle === undefined ? 'border-primary bg-primary/5' : 'hover:border-primary/50'"
+          @click="quitarSeleccionCuota"
+        >
+          <div class="flex items-center justify-center h-full">
+            <span class="font-medium text-sm text-red-500">Sin asociar a cuota</span>
+          </div>
+        </div>
       </div>
+      <p v-if="!formData.id_detalle && intentoGuardar" class="text-red-500 text-xs mt-1">
+        Recomendamos asociar el pago a una cuota específica
+      </p>
     </div>
     
     <!-- Método de pago -->
@@ -109,7 +126,7 @@
     <div class="flex flex-col gap-2">
       <label for="comprobante" class="text-sm font-medium">Comprobante de Pago (opcional)</label>
       <div class="border border-dashed border-input rounded-lg p-6">
-        <div v-if="!archivoSeleccionado" class="flex flex-col items-center justify-center gap-2">
+        <div v-if="!archivoSeleccionado" class="flex flex-col items-center justify-center gap-2 relative">
           <UploadIcon class="w-10 h-10 text-muted-foreground/70" />
           <p class="text-center text-sm text-muted-foreground">
             <span class="font-medium text-primary">Haz clic para seleccionar</span> o arrastra y suelta un archivo
@@ -118,7 +135,7 @@
           <input
             id="comprobante"
             type="file"
-            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            class="absolute w-full h-full top-0 left-0 opacity-0 cursor-pointer z-10"
             accept=".png,.jpg,.jpeg,.pdf"
             @change="handleFileSelect"
           />
@@ -205,12 +222,14 @@ const emit = defineEmits(['guardar', 'cancelar']);
 const formData = reactive<FormState>({
   abono: null,
   fecha: new Date().toISOString().split('T')[0], // Fecha actual en formato YYYY-MM-DD
-  metodo_pago: 'efectivo'
+  metodo_pago: 'efectivo',
+  id_detalle: undefined
 });
 
 const errores = reactive<FormErrors>({});
 const archivoSeleccionado = ref<File | null>(null);
 const isLoading = ref(false);
+const intentoGuardar = ref(false);
 
 // Computados
 const cuotasPendientes = computed(() => {
@@ -235,6 +254,12 @@ const esFormularioValido = computed(() => {
 function seleccionarCuota(detalle: DetallePlan) {
   formData.id_detalle = detalle.id_detalle;
   formData.abono = detalle.monto;
+  intentoGuardar.value = false;
+}
+
+function quitarSeleccionCuota() {
+  formData.id_detalle = undefined;
+  formData.abono = null;
 }
 
 function handleFileSelect(event: Event) {
@@ -329,7 +354,13 @@ function validarFormulario(): boolean {
 }
 
 async function guardar() {
+  intentoGuardar.value = true;
   if (!validarFormulario()) return;
+  
+  if (!formData.id_detalle && cuotasPendientes.value.length > 0) {
+    const confirmar = confirm('Está a punto de guardar un pago sin asociarlo a una cuota específica. Esto puede dificultar el seguimiento de pagos. ¿Desea continuar?');
+    if (!confirmar) return;
+  }
   
   isLoading.value = true;
   

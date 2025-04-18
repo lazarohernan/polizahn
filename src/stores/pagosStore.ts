@@ -168,93 +168,186 @@ export const usePagosStore = defineStore('pagos', () => {
   }
   
   async function guardarNuevoPago(datosPago: CreatePagoDTO) {
-    if (!planDePagoActivo.value) return false
+    if (!planDePagoActivo.value) return false;
     
-    isLoading.value = true
-    error.value = null
+    isLoading.value = true;
+    error.value = null;
     
     try {
-      const { createPago } = usePagos()
+      const { createPago } = usePagos();
       
+      // Si el pago está asociado a una cuota, actualizar el estado de la cuota
       if (datosPago.id_detalle) {
-        const detalleExiste = detallesPlan.value.find(d => d.id_detalle === datosPago.id_detalle)
+        const detalleExiste = detallesPlan.value.find(d => d.id_detalle === datosPago.id_detalle);
         if (!detalleExiste) {
-          throw new Error('La cuota seleccionada no existe o no pertenece a este plan de pago')
+          throw new Error('La cuota seleccionada no existe o no pertenece a este plan de pago');
         }
-        await supabase
+        
+        // Verificar si el monto del pago coincide con el monto de la cuota
+        if (datosPago.abono !== undefined && detalleExiste.monto !== datosPago.abono) {
+          const confirmar = confirm(
+            `El monto del pago (L.${datosPago.abono.toLocaleString('es-HN')}) no coincide con el monto de la cuota seleccionada (L.${detalleExiste.monto.toLocaleString('es-HN')}). ¿Desea continuar de todas formas?`
+          );
+          if (!confirmar) {
+            isLoading.value = false;
+            return false;
+          }
+        }
+        
+        // Actualizar estado de la cuota a 'pagado'
+        const { error: updateError } = await supabase
           .from('plan_de_pago_detalle')
-          .update({ estado: 'pagado' })
-          .eq('id_detalle', datosPago.id_detalle)
+          .update({ 
+            estado: 'pagado',
+            fecha_modificado: new Date().toISOString(),
+          })
+          .eq('id_detalle', datosPago.id_detalle);
+          
+        if (updateError) {
+          console.error('Error al actualizar estado de la cuota:', updateError);
+          toast.warning('Se creará el pago, pero hubo un problema al actualizar el estado de la cuota');
+        }
+      } else if (detallesPlan.value.length > 0) {
+        // Si no se seleccionó cuota específica pero hay cuotas pendientes, mostrar advertencia
+        toast.warning('El pago se ha registrado sin asociarse a una cuota específica. Esto puede dificultar el seguimiento de pagos.');
       }
       
       const pagoConPlan: CreatePagoDTO = {
         ...datosPago,
         id_plan: planDePagoActivo.value
-      }
+      };
       
-      const response = await createPago(pagoConPlan)
+      const response = await createPago(pagoConPlan);
       
       if (!response.ok) {
-        throw new Error(response.message || 'Error devuelto por createPago')
+        // Si hubo error al crear el pago pero ya se actualizó la cuota, revertir cambio
+        if (datosPago.id_detalle) {
+          await supabase
+            .from('plan_de_pago_detalle')
+            .update({ 
+              estado: 'pendiente',
+              fecha_modificado: new Date().toISOString() 
+            })
+            .eq('id_detalle', datosPago.id_detalle);
+        }
+        throw new Error(response.message || 'Error devuelto por createPago');
       }
       
-      toast.success('Pago registrado correctamente')
-      showFormularioNuevoPago.value = false
-      await cargarDatos()
-      return true
+      toast.success('Pago registrado correctamente');
+      showFormularioNuevoPago.value = false;
+      await cargarDatos();
+      return true;
     } catch (err) {
-      error.value = handleAndToastError(err, 'PagosStore/guardarNuevoPago', 'Error al registrar el nuevo pago')
-      return false
+      error.value = handleAndToastError(err, 'PagosStore/guardarNuevoPago', 'Error al registrar el nuevo pago');
+      return false;
     } finally {
-      isLoading.value = false
+      isLoading.value = false;
     }
   }
   
   async function actualizarPago(datosPago: UpdatePagoDTO & { id_pago: string }) {
-    if (!datosPago.id_pago) return false
+    if (!datosPago.id_pago) return false;
     
-    isLoading.value = true
-    error.value = null
+    isLoading.value = true;
+    error.value = null;
     
     try {
-      const { updatePago } = usePagos()
+      const { updatePago } = usePagos();
       
+      // Manejar cambios en la asociación de cuotas
       if (pagoSeleccionado.value?.id_detalle !== datosPago.id_detalle) {
+        // Si había una cuota asociada anteriormente, cambiarla a pendiente
         if (pagoSeleccionado.value?.id_detalle) {
-          await supabase
+          const { error: resetError } = await supabase
             .from('plan_de_pago_detalle')
-            .update({ estado: 'pendiente' })
-            .eq('id_detalle', pagoSeleccionado.value.id_detalle)
+            .update({ 
+              estado: 'pendiente',
+              fecha_modificado: new Date().toISOString() 
+            })
+            .eq('id_detalle', pagoSeleccionado.value.id_detalle);
+            
+          if (resetError) {
+            console.error('Error al restaurar estado de la cuota anterior:', resetError);
+            toast.warning('Se actualizará el pago, pero hubo un problema al actualizar el estado de la cuota anterior');
+          }
         }
+        
+        // Si se está asociando a una nueva cuota, verificar que exista y cambiarla a pagado
         if (datosPago.id_detalle) {
-          await supabase
+          const detalleExiste = detallesPlan.value.find(d => d.id_detalle === datosPago.id_detalle);
+          if (!detalleExiste) {
+            throw new Error('La cuota seleccionada no existe o no pertenece a este plan de pago');
+          }
+          
+          // Verificar si el monto del pago coincide con el monto de la cuota
+          if (datosPago.abono !== undefined && detalleExiste.monto !== datosPago.abono) {
+            const confirmar = confirm(
+              `El monto del pago (L.${datosPago.abono.toLocaleString('es-HN')}) no coincide con el monto de la cuota seleccionada (L.${detalleExiste.monto.toLocaleString('es-HN')}). ¿Desea continuar de todas formas?`
+            );
+            if (!confirmar) {
+              isLoading.value = false;
+              return false;
+            }
+          }
+          
+          const { error: updateError } = await supabase
             .from('plan_de_pago_detalle')
-            .update({ estado: 'pagado' })
-            .eq('id_detalle', datosPago.id_detalle)
+            .update({ 
+              estado: 'pagado',
+              fecha_modificado: new Date().toISOString() 
+            })
+            .eq('id_detalle', datosPago.id_detalle);
+            
+          if (updateError) {
+            console.error('Error al actualizar estado de la nueva cuota:', updateError);
+            toast.warning('Se actualizará el pago, pero hubo un problema al actualizar el estado de la nueva cuota');
+          }
+        } else if (detallesPlan.value.length > 0) {
+          // Si se está desasociando de toda cuota, mostrar advertencia
+          toast.warning('El pago se ha desasociado de cualquier cuota específica. Esto puede dificultar el seguimiento de pagos.');
         }
       }
       
-      const response = await updatePago(datosPago.id_pago, datosPago)
+      // Actualizar el pago en la base de datos
+      const response = await updatePago(datosPago.id_pago, datosPago);
       
       if (!response.ok) {
-        throw new Error(response.message || 'Error devuelto por updatePago')
+        // Si hubo error al actualizar el pago, intentar revertir cambios en las cuotas
+        if (pagoSeleccionado.value?.id_detalle !== datosPago.id_detalle) {
+          // Revertir cuota anterior
+          if (pagoSeleccionado.value?.id_detalle) {
+            await supabase
+              .from('plan_de_pago_detalle')
+              .update({ estado: 'pagado' })
+              .eq('id_detalle', pagoSeleccionado.value.id_detalle);
+          }
+          // Revertir nueva cuota
+          if (datosPago.id_detalle) {
+            await supabase
+              .from('plan_de_pago_detalle')
+              .update({ estado: 'pendiente' })
+              .eq('id_detalle', datosPago.id_detalle);
+          }
+        }
+        
+        throw new Error(response.message || 'Error devuelto por updatePago');
       }
       
-      toast.success('Pago actualizado correctamente')
-      cerrarDetallePago()
-      await cargarDatos()
-      return true
+      toast.success('Pago actualizado correctamente');
+      cerrarDetallePago();
+      await cargarDatos();
+      return true;
     } catch (err) {
-      error.value = handleAndToastError(err, 'PagosStore/actualizarPago', 'Error al actualizar el pago')
-      return false
+      error.value = handleAndToastError(err, 'PagosStore/actualizarPago', 'Error al actualizar el pago');
+      return false;
     } finally {
-      isLoading.value = false
+      isLoading.value = false;
     }
   }
   
   async function eliminarPago(idPago: string) {
-    isLoading.value = true
-    error.value = null
+    isLoading.value = true;
+    error.value = null;
     
     try {
       const { data: pago } = await supabase.from('pagos_de_polizas').select('id_detalle').eq('id_pago', idPago).single();
@@ -267,28 +360,28 @@ export const usePagosStore = defineStore('pagos', () => {
         .update({ estado: false })
         .eq('id_pago', idPago);
         
-      const errorMessage = updateError ? (updateError as any).message : undefined;
+      const errorMessage = updateError ? updateError.message : undefined;
       if (updateError) throw new Error(errorMessage || 'Error desconocido al actualizar estado del pago');
       const response = { ok: !updateError, message: errorMessage };
 
       if (!response.ok) {
-        throw new Error(response.message || 'Error devuelto al eliminar pago')
+        throw new Error(response.message || 'Error devuelto al eliminar pago');
       }
       
-      toast.success('Pago eliminado correctamente')
+      toast.success('Pago eliminado correctamente');
       
-      pagosData.value = pagosData.value.filter(p => p.id_pago !== idPago)
+      pagosData.value = pagosData.value.filter(p => p.id_pago !== idPago);
       if (pagoSeleccionado.value?.id_pago === idPago) {
-        cerrarDetallePago()
+        cerrarDetallePago();
       }
-      await cargarDetallesPlan()
+      await cargarDetallesPlan();
       
-      return true
+      return true;
     } catch (err) {
-      error.value = handleAndToastError(err, 'PagosStore/eliminarPago', 'Error al eliminar el pago')
-      return false
+      error.value = handleAndToastError(err, 'PagosStore/eliminarPago', 'Error al eliminar el pago');
+      return false;
     } finally {
-      isLoading.value = false
+      isLoading.value = false;
     }
   }
 
