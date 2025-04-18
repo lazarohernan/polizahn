@@ -1,3 +1,10 @@
+<!--
+  ModalVerCliente.vue
+  
+  Modal para visualizar y editar la información detallada de un cliente.
+  Permite ver datos personales y de contacto, así como realizar acciones como editar y eliminar.
+-->
+
 <template>
   <Teleport to="body">
     <!-- Overlay del modal -->
@@ -440,6 +447,7 @@
       auth_user_id?: string;
       fecha_creado?: string;
     }[];
+    'id-usuario-correduria'?: string;
   }>();
 
   const emit = defineEmits<{
@@ -447,6 +455,8 @@
     (e: 'refresh'): void;
     (e: 'updateClient', client: Database['public']['Tables']['clientes']['Row']): void;
     (e: 'deleteClient', id: string): void;
+    (e: 'update', client: Database['public']['Tables']['clientes']['Row']): void;
+    (e: 'delete', id: string): void;
   }>();
 
   const toast = useToast();
@@ -574,6 +584,7 @@
 
         // Emitir eventos al componente padre
         emit('deleteClient', editedClient.value.id_cliente);
+        emit('delete', editedClient.value.id_cliente);
         emit('refresh'); // Para refrescar la lista
         emit('close'); // Para cerrar el modal
       } else {
@@ -663,97 +674,45 @@
   };
 
   const handleSave = async () => {
-    if (!editedClient.value) {
-      toast.error('No hay datos del cliente para guardar');
-      return;
-    }
-
+    if (!editedClient.value) return;
+    
     try {
-      // Validaciones
-      if (!editedClient.value.nombres?.trim()) {
-        toast.error('Por favor complete el nombre');
-        return;
-      }
-
-      if (!editedClient.value.identificacion?.trim()) {
-        toast.error('Por favor complete la identificación');
-        return;
-      }
-
-      if (!editedClient.value.correo?.trim()) {
-        toast.error('Por favor complete el correo electrónico');
-        return;
-      }
-
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(editedClient.value.correo)) {
-        toast.error('Por favor ingrese un correo electrónico válido');
-        return;
-      }
-
+      console.log('Iniciando actualización del cliente:', editedClient.value.id_cliente);
       isLoading.value = true;
-
-      // Verificar que existe id_cliente antes de enviar actualización
-      if (!editedClient.value.id_cliente) {
-        throw new Error('ID de cliente no válido');
+      
+      // Validaciones
+      if (!editedClient.value.nombres || !editedClient.value.apellidos) {
+        throw new Error('Los nombres y apellidos son obligatorios');
       }
-
-      console.log('Cliente antes de actualizar:', editedClient.value);
-
-      // Crear un objeto simple con solo los campos que queremos actualizar
-      const clienteParaActualizar = {
-        identificacion: editedClient.value.identificacion,
-        correo: editedClient.value.correo,
-        nombres: editedClient.value.nombres,
-        empresa: editedClient.value.empresa || null,
-        tel_1: editedClient.value.tel_1 || null,
-        tel_2: editedClient.value.tel_2 || null,
-        dob: typeof editedClient.value.dob === 'string' ? new Date(editedClient.value.dob) : editedClient.value.dob,
-        modificado_por: currentUser?.id || null,
-      };
-
-      console.log('Actualizando cliente...');
-      console.log('ID:', editedClient.value.id_cliente);
-      console.log('Datos a enviar:', JSON.stringify(clienteParaActualizar, null, 2));
-
-      // Implementar actualización utilizando el composable
-      const updatedClient = await updateCliente(
-        editedClient.value.id_cliente,
-        clienteParaActualizar,
-      );
-
-      // Procesar respuesta
-      if (updatedClient) {
-        console.log('Cliente actualizado correctamente:', JSON.stringify(updatedClient, null, 2));
-
-        // Actualizar editedClient con los datos recibidos del servidor
-        editedClient.value = { ...updatedClient };
-
-        // Emitir el cliente actualizado directamente
-        emit('updateClient', updatedClient);
-        emit('refresh'); // Para asegurar que la lista de clientes se actualice
-
+      
+      if (!editedClient.value.identificacion) {
+        throw new Error('La identificación es obligatoria');
+      }
+      
+      if (!editedClient.value.correo) {
+        throw new Error('El correo electrónico es obligatorio');
+      }
+      
+      // Llamar a la función de actualización
+      const resultado = await updateCliente(editedClient.value.id_cliente, editedClient.value);
+      
+      console.log('Resultado de la actualización:', resultado);
+      
+      if (resultado.ok) {
         toast.success('Cliente actualizado exitosamente');
+        
+        // Actualizar el cliente en el padre y salir del modo edición
+        emit('updateClient', editedClient.value);
+        emit('update', editedClient.value);
+        emit('refresh');
         isEditing.value = false;
         hasChanges.value = false;
       } else {
-        // Si no hay cliente actualizado pero no hubo error, mostrar un mensaje genérico
-        console.warn('No se obtuvo respuesta con datos del cliente actualizado');
-        toast.info('No se realizaron cambios en el cliente');
-        isEditing.value = false;
+        throw new Error(resultado.message || 'No se pudo actualizar el cliente');
       }
     } catch (error) {
-      console.error('Error al guardar cliente:', error);
-
-      // Mostrar mensaje de error específico si es posible
-      let errorMessage = 'Error desconocido';
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (typeof error === 'object' && error !== null) {
-        errorMessage = JSON.stringify(error);
-      }
-
-      toast.error('Error al guardar los cambios: ' + errorMessage);
+      console.error('Error al actualizar cliente:', error);
+      toast.error(error instanceof Error ? error.message : 'Error al actualizar el cliente');
     } finally {
       isLoading.value = false;
     }

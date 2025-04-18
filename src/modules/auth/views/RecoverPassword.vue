@@ -109,7 +109,9 @@
 <script setup lang="ts">
   import { ref } from 'vue';
   import { Mail, Lock, AlertCircle, ArrowLeft } from 'lucide-vue-next';
+  import { useToast } from 'vue-toastification';
 
+  const toast = useToast();
   const inputEmailRef = ref<HTMLInputElement | null>(null);
   const email = ref('');
   const error = ref<string | null>(null);
@@ -135,12 +137,13 @@
       // Simular un retraso para la demo
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Si todo es exitoso, mostrar mensaje
-      alert('Se ha enviado un correo con instrucciones para recuperar tu contraseña');
+      // Si todo es exitoso, mostrar mensaje con toast
+      toast.success('Se ha enviado un correo con instrucciones para recuperar tu contraseña');
       
     } catch (e) {
       console.error('Error durante el proceso de recuperación:', e);
       error.value = e instanceof Error ? e.message : 'Error durante el proceso de recuperación';
+      toast.error(error.value);
     } finally {
       loading.value = false;
     }

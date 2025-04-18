@@ -32,22 +32,19 @@ export interface DeletePagoResponse {
  * Basada en la tabla pagos_de_polizas de la base de datos
  */
 export interface Pago {
-  id_pago?: string;
+  id_pago: string;
   id_plan: string;
+  id_detalle?: string;
   abono: number;
-  fecha: Date | string;
-  metodo_pago: string;
-  url_comprobante?: string | File;
+  fecha: string;
+  metodo_pago: 'efectivo' | 'tarjeta' | 'transferencia';
+  url_comprobante?: string;
   creado_por?: string;
-  fecha_creado?: Date | string;
-  modificado_por?: string | null;
-  fecha_modificado?: Date | string | null;
-  estado?: boolean;
-
-  // Propiedades adicionales que vienen en las consultas
-  numero_poliza?: string;
-  prima_total?: number;
-  plazo?: number;
+  fecha_creado?: string;
+  modificado_por?: string;
+  fecha_modificado?: string;
+  estado: 'activo' | 'inactivo';
+  numero_cuota?: number;
 }
 
 /**
@@ -56,10 +53,15 @@ export interface Pago {
  */
 export interface CreatePagoDTO {
   id_plan: string;
+  id_detalle?: string;
   abono: number;
-  fecha?: Date | string;
+  fecha: string | Date;
   metodo_pago: string;
-  comprobante?: File;
+  url_comprobante?: string | File;
+  numero_cuota?: number;
+  descripcion?: string;
+  id_poliza?: string;
+  plazo?: number;
 }
 
 /**
@@ -67,8 +69,28 @@ export interface CreatePagoDTO {
  * Todos los campos son opcionales excepto los requeridos para la ruta
  */
 export interface UpdatePagoDTO {
-  abono: number;
-  fecha?: Date | string;
-  metodo_pago: string;
-  comprobante?: File;
+  id_pago?: string;
+  id_plan?: string;
+  id_detalle?: string;
+  abono?: number;
+  fecha?: string | Date;
+  metodo_pago?: string;
+  url_comprobante?: string | File | null;
+  estado?: string;
+  descripcion?: string;
+  numero_cuota?: number;
+  plazo?: number;
+}
+
+export interface DetallePlan {
+  id_detalle: string;
+  id_plan: string;
+  numero_pago: number;
+  monto: number;
+  fecha_vencimiento: string;
+  estado: 'pendiente' | 'pagado' | 'vencido';
+  fecha_creado?: string;
+  creado_por?: string;
+  fecha_modificado?: string;
+  modificado_por?: string;
 }

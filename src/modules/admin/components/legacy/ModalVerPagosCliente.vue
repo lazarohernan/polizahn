@@ -1,3 +1,10 @@
+<!--
+  ModalVerPagosCliente.vue
+  
+  Modal para visualizar los pagos asociados a una póliza de un cliente.
+  Permite ver el historial de pagos, registrar nuevos pagos y ver detalles del plan de pago.
+-->
+
 <template>
   <Teleport to="body">
     <div
@@ -29,7 +36,11 @@
 
         <div class="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
           <!-- Información del Cliente -->
-          <ClientInfoCard :client="client" :plan-de-pago="planDePago" />
+          <TarjetaInfoCliente
+            v-if="planDePago" 
+            :cliente="client"
+            :plan-de-pago="planDePago"
+          />
 
           <!-- Sección de Pagos o Formulario -->
           <div v-if="!showAddPaymentModal && !showPaymentDetailsModal" class="flex flex-col gap-4">
@@ -48,28 +59,28 @@
             </div>
 
             <!-- Tabla de Pagos -->
-            <PaymentTable
-              :payments="payments"
-              @view="handleViewPayment"
-              @edit="handleEditPayment"
+            <TablaPagos
+              :pagos="payments"
+              @ver="handleViewPayment"
+              @editar="handleEditPayment"
             />
           </div>
 
           <!-- Formulario de Pago -->
-          <AddPaymentForm
+          <FormularioAgregarPago
             v-else-if="showAddPaymentModal"
-            @save="handleAddPayment"
-            @cancel="showAddPaymentModal = false"
+            @guardar="handleAddPayment"
+            @cancelar="showAddPaymentModal = false"
           />
 
           <!-- Vista/Edición de Pago -->
-          <PaymentDetails
+          <DetallesPago
             v-else-if="showPaymentDetailsModal && selectedPayment"
-            :payment="selectedPayment"
-            :is-editing="isEditing"
-            @edit="isEditing = true"
-            @save="handleSavePayment"
-            @close="showPaymentDetailsModal = false"
+            :pago="selectedPayment"
+            :modo-edicion="isEditing"
+            @editar="isEditing = true"
+            @guardar="handleSavePayment"
+            @cerrar="showPaymentDetailsModal = false"
           />
         </div>
       </div>
@@ -116,26 +127,60 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, watchEffect } from 'vue';
+  import { ref, onMounted, watchEffect, computed } from 'vue';
   import { X, FileText, Plus, AlertTriangle } from 'lucide-vue-next';
-  import ClientInfoCard from './payments/ClientInfoCard.vue';
-  import PaymentTable from './payments/PaymentTable.vue';
-  import AddPaymentForm from './payments/AddPaymentForm.vue';
-  import PaymentDetails from './payments/PaymentDetails.vue';
+  import TarjetaInfoCliente from './pagos/TarjetaInfoCliente.vue';
+  import TablaPagos from './pagos/TablaPagos.vue';
+  import FormularioAgregarPago from './pagos/FormularioAgregarPago.vue';
+  import DetallesPago from './pagos/DetallesPago.vue';
   import { Cliente } from '../interfaces/cliente_interface';
   import { PlanDePago } from '../interfaces/plan_de_pago_interface';
   import { usePlanDePago } from '@/composables/usePlanDePago';
   import { usePagos } from '@/composables/usePagos';
   import { Pago } from '../interfaces/pagos_interface';
   import { useToast } from 'vue-toastification';
+  import { useRoute } from 'vue-router';
 
   const toast = useToast();
+  const vueRoute = useRoute();
 
   const props = defineProps<{
     show: boolean;
     client: Cliente;
     planDePagoId: string;
+    idCliente: string;
   }>();
+
+  // Agregar log para ver las propiedades recibidas
+  console.log("[ModalVerPagosCliente] Props recibidas:", {
+    show: props.show,
+    clientId: props.client?.id_cliente,
+    idCliente: props.idCliente,
+    planDePagoId: props.planDePagoId
+  });
+
+  // Agregar log para debugging de parámetros de ruta
+  console.log("[ModalVerPagosCliente] Parámetros de ruta:", {
+    params: vueRoute.params,
+    query: vueRoute.query,
+    planDePagoIdFromRoute: vueRoute.params.planDePagoId,
+    planIdFromQuery: vueRoute.query.plan
+  });
+
+  // Computed property para obtener el ID del plan de pago de manera confiable
+  const effectivePlanDePagoId = computed(() => {
+    // Primero intentar obtener de query params (más confiable después de navegación)
+    const idFromQuery = vueRoute.query.plan?.toString();
+    
+    // Luego intentar obtener de route params (legado)
+    const idFromRoute = vueRoute.params.planDePagoId?.toString();
+    
+    // Finalmente usar el de props
+    const id = idFromQuery || idFromRoute || props.planDePagoId;
+    
+    console.log("[ModalVerPagosCliente] ID de plan efectivo:", id);
+    return id;
+  });
 
   const emit = defineEmits<{
     close: [];
@@ -157,9 +202,9 @@
 
   const handleAddPayment = async (formData: FormData) => {
     try {
-      // Crear el pago usando el composable
+      // Crear el pago usando el composable y el ID efectivo
       const res = await createPago({
-        id_plan: props.planDePagoId,
+        id_plan: effectivePlanDePagoId.value,
         abono: Number(formData.get('abono')),
         fecha: formData.get('fecha') as string,
         metodo_pago: formData.get('metodo_pago') as string,
@@ -170,7 +215,7 @@
         toast.success('Pago registrado exitosamente!');
 
         // Refetch los pagos
-        const pagosRes = await getPagos(props.planDePagoId);
+        const pagosRes = await getPagos(effectivePlanDePagoId.value);
         if (pagosRes.ok) {
           payments.value = pagosRes.data;
         }
@@ -222,7 +267,7 @@
         isEditing.value = false;
 
         // Refetch los pagos
-        const pagosRes = await getPagos(props.planDePagoId);
+        const pagosRes = await getPagos(effectivePlanDePagoId.value);
         if (pagosRes.ok) {
           payments.value = pagosRes.data;
         }
@@ -258,33 +303,54 @@
   };
 
   onMounted(async () => {
-    if (props.planDePagoId) {
+    console.log("[ModalVerPagosCliente] onMounted - planDePagoId:", effectivePlanDePagoId.value);
+    
+    if (effectivePlanDePagoId.value) {
       // Obtener el plan de pago
-      const response = await getPlanDePago(props.planDePagoId);
+      console.log("[ModalVerPagosCliente] Obteniendo plan de pago con ID:", effectivePlanDePagoId.value);
+      const response = await getPlanDePago(effectivePlanDePagoId.value);
       if (response.ok) {
         planDePago.value = response.data;
+        console.log("[ModalVerPagosCliente] Plan de pago obtenido:", planDePago.value);
+      } else {
+        console.error("[ModalVerPagosCliente] Error al obtener plan de pago:", response.message);
       }
 
       // Obtener los pagos del plan de pago
-      const pagosRes = await getPagos(props.planDePagoId);
+      console.log("[ModalVerPagosCliente] Obteniendo pagos del plan:", effectivePlanDePagoId.value);
+      const pagosRes = await getPagos(effectivePlanDePagoId.value);
       if (pagosRes.ok) {
         payments.value = pagosRes.data;
+        console.log("[ModalVerPagosCliente] Pagos obtenidos:", payments.value.length);
+      } else {
+        console.error("[ModalVerPagosCliente] Error al obtener pagos:", pagosRes.message);
       }
+    } else {
+      console.warn("[ModalVerPagosCliente] No se proporcionó un ID de plan de pago válido");
+      toast.error("No se pudo cargar el plan de pago. ID no proporcionado.");
     }
   });
 
   watchEffect(async () => {
-    if (props.planDePagoId) {
+    console.log("[ModalVerPagosCliente] watchEffect - planDePagoId:", effectivePlanDePagoId.value);
+    
+    if (effectivePlanDePagoId.value) {
       // Obtener el plan de pago
-      const response = await getPlanDePago(props.planDePagoId);
+      const response = await getPlanDePago(effectivePlanDePagoId.value);
       if (response.ok) {
         planDePago.value = response.data;
+        console.log("[ModalVerPagosCliente] Plan de pago actualizado:", planDePago.value);
+      } else {
+        console.error("[ModalVerPagosCliente] Error al actualizar plan de pago:", response.message);
       }
 
       // Obtener los pagos del plan de pago
-      const pagosRes = await getPagos(props.planDePagoId);
+      const pagosRes = await getPagos(effectivePlanDePagoId.value);
       if (pagosRes.ok) {
         payments.value = pagosRes.data;
+        console.log("[ModalVerPagosCliente] Pagos actualizados:", payments.value.length);
+      } else {
+        console.error("[ModalVerPagosCliente] Error al actualizar pagos:", pagosRes.message);
       }
     }
   });

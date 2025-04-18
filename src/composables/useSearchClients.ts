@@ -1,8 +1,9 @@
 import { ref } from 'vue';
 import { supabase } from '@/lib/supabase';
 import type { Cliente } from '@/modules/admin/interfaces/cliente_interface';
+import { useErrorHandler } from '@/composables/useErrorHandler';
 
-// Tipo para los clientes como vienen de la base de datos (con fechas en formato string)
+// Tipo para los clientes como vienen de la base de datos
 type ClienteDB = {
   id_cliente: string;
   identificacion: string;
@@ -19,6 +20,7 @@ type ClienteDB = {
   creado_por: string | null;
   fecha_modificado: string | null;
   modificado_por: string | null;
+  estado: boolean;
   total_polizas?: number;
   clientes_por_correduria?: {
     id_cliente_correduria: string;
@@ -30,10 +32,11 @@ type ClienteDB = {
 
 export function useSearchClients() {
   const loading = ref(false);
-  const error = ref<Error | null>(null);
+  const error = ref<string | null>(null);
   const filteredItems = ref<Cliente[]>([]);
+  const { handleAndToastError } = useErrorHandler();
 
-  // Función auxiliar para convertir fechas string a Date
+  // Función auxiliar para convertir fechas string a Date y ajustar tipos
   const convertDatesToDateObjects = (clients: ClienteDB[]): Cliente[] => {
     return clients.map(client => ({
       id_cliente: client.id_cliente,
@@ -41,23 +44,18 @@ export function useSearchClients() {
       correo: client.correo,
       nombres: client.nombres,
       apellidos: client.apellidos,
-      dob: client.dob ? new Date(client.dob) : null,
-      empresa: client.empresa ?? null,
-      tel_1: client.tel_1 || null,
-      tel_2: client.tel_2 ?? null,
-      fecha_creado: client.fecha_creado ? new Date(client.fecha_creado) : null,
+      dob: client.dob,
+      empresa: client.empresa,
+      tel_1: client.tel_1,
+      tel_2: client.tel_2,
+      direccion: client.direccion,
+      avatar_url: client.foto,
+      estado: client.estado,
+      fecha_creado: client.fecha_creado,
       creado_por: client.creado_por,
-      fecha_modificado: client.fecha_modificado ? new Date(client.fecha_modificado) : null,
+      fecha_modificado: client.fecha_modificado,
       modificado_por: client.modificado_por,
-      id_correduria: client.id_correduria,
-      foto: client.foto ?? null,
-      direccion: client.direccion ?? null,
-      // Agregar propiedades adicionales si es necesario
-      ...(client.total_polizas !== undefined && { total_polizas: client.total_polizas }),
-      ...(client.clientes_por_correduria !== undefined && { 
-        clientes_por_correduria: client.clientes_por_correduria 
-      })
-    })) as Cliente[];
+    }));
   };
 
   const searchClients = async (query: string, id_correduria?: string) => {
@@ -73,14 +71,14 @@ export function useSearchClients() {
       }
 
       if (!query.trim()) {
-        const { data, error: searchError } = await supabase
+        const { data, error: dbError } = await supabase
           .from('clientes')
           .select('*, clientes_por_correduria!inner(*)')
           .eq('clientes_por_correduria.id_correduria', id_correduria)
           .order('nombres')
           .limit(50);
 
-        if (searchError) throw searchError;
+        if (dbError) throw dbError;
         
         // Convertir fechas a Date antes de asignar
         const clientesConFechas = convertDatesToDateObjects(data || []);
@@ -96,7 +94,7 @@ export function useSearchClients() {
         .map(word => word.toLowerCase())
         .join(' & ');
 
-      const { data, error: searchError } = await supabase
+      const { data, error: dbError } = await supabase
         .from('clientes')
         .select('*, clientes_por_correduria!inner(*)')
         .eq('clientes_por_correduria.id_correduria', id_correduria)
@@ -104,15 +102,18 @@ export function useSearchClients() {
         .order('nombres')
         .limit(50);
 
-      if (searchError) throw searchError;
+      if (dbError) throw dbError;
       
       // Convertir fechas a Date antes de asignar
       const clientesConFechas = convertDatesToDateObjects(data || []);
       filteredItems.value = clientesConFechas;
       return clientesConFechas;
     } catch (err) {
-      console.error('Error en la búsqueda:', err);
-      error.value = err as Error;
+      error.value = handleAndToastError(
+        err, 
+        `useSearchClients/searchClients(${query}, ${id_correduria})`, 
+        'Error al buscar clientes'
+      );
       filteredItems.value = [];
       return [];
     } finally {

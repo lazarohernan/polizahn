@@ -2,12 +2,40 @@
   Footer.vue para Home
   
   Footer específico para la página de inicio con diseño moderno y enlaces relevantes.
+  Incluye la animación de palabras del Footer común.
 -->
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 
 const currentYear = new Date().getFullYear();
+
+// Animación de palabras rotativas
+const words = ['Pasión', 'Orgullo', 'Corazón'];
+const currentWordIndex = ref(0);
+const hasStarted = ref(false);
+let interval: number | null = null;
+
+const rotateWords = () => {
+  if (!hasStarted.value) {
+    hasStarted.value = true;
+  }
+  currentWordIndex.value = (currentWordIndex.value + 1) % words.length;
+};
+
+onMounted(() => {
+  // Pequeño retraso para asegurar que la animación inicial se muestre correctamente
+  setTimeout(() => {
+    hasStarted.value = true;
+    interval = window.setInterval(rotateWords, 3000);
+  }, 100);
+});
+
+onUnmounted(() => {
+  if (interval) {
+    clearInterval(interval);
+  }
+});
 
 // Enlaces para las diferentes secciones
 const productLinks = [
@@ -162,8 +190,23 @@ const handleSubmit = () => {
       <!-- Barra inferior con copyright y enlaces legales -->
       <div class="border-t border-gray-200 dark:border-gray-800 mt-12 pt-8">
         <div class="flex flex-col md:flex-row justify-between items-center">
-          <p class="text-sm text-white dark:text-gray-400">
-            &copy; {{ currentYear }} SegurosHN. Todos los derechos reservados.
+          <p class="text-sm text-white dark:text-gray-400 flex items-center gap-2">
+            &copy; {{ currentYear }} Desarrollado en Honduras 🇭🇳 con
+            <span class="inline-block w-[100px] sm:w-[80px] h-[1.5em] relative overflow-hidden">
+              <span class="words-wrapper absolute left-0 top-0 w-full h-full">
+                <span
+                  v-for="(word, index) in words"
+                  :key="word"
+                  class="word absolute left-0 top-0 font-semibold text-white whitespace-nowrap w-max"
+                  :class="{
+                    'active': currentWordIndex === index,
+                    'initial': !hasStarted && index === 0
+                  }"
+                >
+                  {{ word }}
+                </span>
+              </span>
+            </span>
           </p>
           
           <div class="mt-4 md:mt-0 flex flex-wrap gap-4">
@@ -200,5 +243,60 @@ const handleSubmit = () => {
 
 .bg-gray-25 {
   background-color: #fafafa;
+}
+
+/* Estilos para la animación de palabras */
+.words-wrapper {
+  perspective: 300px;
+}
+
+.word {
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+  transform: translateY(20px) rotateX(-90deg);
+  transform-origin: 50% 100%;
+  pointer-events: none;
+}
+
+.word.initial {
+  opacity: 1;
+  transform: translateY(0) rotateX(0);
+}
+
+.word.active {
+  opacity: 1;
+  transform: translateY(0) rotateX(0);
+}
+
+/* Asegurar que las palabras no activas estén ocultas */
+.word:not(.active):not(.initial) {
+  opacity: 0;
+  transform: translateY(-20px) rotateX(90deg);
+}
+
+/* Prevenir el parpadeo y mejorar el rendimiento */
+.words-wrapper {
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Optimización para dispositivos que prefieren menos movimiento */
+@media (prefers-reduced-motion: reduce) {
+  .word {
+    transition: opacity 0.5s ease-in-out;
+    transform: none !important;
+  }
+  
+  .word.initial,
+  .word.active {
+    opacity: 1;
+  }
+  
+  .word:not(.active):not(.initial) {
+    opacity: 0;
+    transform: none;
+  }
 }
 </style> 

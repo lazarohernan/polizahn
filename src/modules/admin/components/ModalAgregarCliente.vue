@@ -1,3 +1,10 @@
+<!--
+  ModalAgregarCliente.vue
+  
+  Modal para registrar nuevos clientes en el sistema.
+  Permite ingresar información personal y de contacto del cliente.
+-->
+
 <template>
   <Teleport to="body">
     <Transition

@@ -17,34 +17,33 @@ export interface RespuestaSimple {
   data: Cliente;
 }
 
+/**
+ * Interfaz que representa un Cliente en el sistema
+ * Basada en la tabla `clientes` de Supabase
+ */
 export interface Cliente {
   id_cliente: string;
-  id_correduria?: string;
-  nombres: string;
-  apellidos: string;
-  identificacion: string;
-  correo: string;
-  tel_1: string | null;
-  tel_2: string | null;
-  empresa: string | null;
-  dob: Date | null;
-  fecha_creado: Date | null;
-  creado_por: string | null;
-  fecha_modificado: Date | null;
-  modificado_por: string | null;
-  foto: string | null;
-  direccion: string | null;
-  total_polizas?: number;
-  clientes_por_correduria?: {
-    id_cliente_correduria: string;
-    id_correduria: string;
-    fecha_creado: string;
-  }[];
-  id_usuario_correduria?: string | null;
+  nombres: string;          // Corresponde a la columna nombres
+  apellidos: string;        // Corresponde a la columna apellidos
+  identificacion: string;   // Corresponde a la columna identificacion (DNI)
+  correo: string;           // Corresponde a la columna correo (email)
+  tel_1?: string | null;     // Corresponde a la columna tel_1 (telefono principal)
+  tel_2?: string | null;     // Corresponde a la columna tel_2 (telefono secundario)
+  empresa?: string | null;   // Corresponde a la columna empresa
+  dob?: string | null;       // Corresponde a la columna dob (fecha de nacimiento)
+  direccion?: string | null; // Corresponde a la columna direccion
+  avatar_url?: string | null; // Permitir null
+  estado: boolean;          // Corresponde a la columna estado (activo/inactivo)
+  creado_por?: string | null; // Permitir null
+  fecha_creado?: string | null; // Permitir null
+  modificado_por?: string | null; // Permitir null
+  fecha_modificado?: string | null; // Permitir null
 }
 
+/**
+ * DTO para crear un nuevo cliente
+ */
 export interface CreateClienteDTO {
-  id_correduria: string;
   nombres: string;
   apellidos: string;
   identificacion: string;
@@ -52,10 +51,16 @@ export interface CreateClienteDTO {
   tel_1?: string | null;
   tel_2?: string | null;
   empresa?: string | null;
-  dob?: Date | null;
-  creado_por: string;
+  dob?: string | null;
+  direccion?: string | null;
+  avatar_url?: string | null;
+  creado_por?: string | null; // Permitir null
+  // fecha_creado se genera en DB
 }
 
+/**
+ * DTO para actualizar un cliente existente
+ */
 export interface UpdateClienteDTO {
   nombres?: string;
   apellidos?: string;
@@ -64,8 +69,12 @@ export interface UpdateClienteDTO {
   tel_1?: string | null;
   tel_2?: string | null;
   empresa?: string | null;
-  dob?: Date | null;
-  modificado_por: string;
+  dob?: string | null;
+  direccion?: string | null;
+  avatar_url?: string | null;
+  estado?: boolean;
+  modificado_por?: string | null; // Permitir null
+  // fecha_modificado se actualiza en DB
 }
 
 export interface CreateClienteResponse {

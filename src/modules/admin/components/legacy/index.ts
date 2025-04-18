@@ -37,6 +37,12 @@ export const adminRoutes: RouteRecordRaw = {
           props: true
         },
         {
+          path: ':id/pagos/:planDePagoId?',
+          name: 'cliente-pagos',
+          component: () => import('@/modules/admin/views/Clientes.vue'),
+          props: true
+        },
+        {
           path: 'nuevo',
           name: 'cliente-nuevo',
           component: () => import('@/modules/admin/views/Clientes.vue'),

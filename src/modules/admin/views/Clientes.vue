@@ -146,37 +146,23 @@
                   </td>
                   <!-- Acciones -->
                   <td class="px-6 py-4 whitespace-nowrap text-center">
-                    <div class="flex items-center justify-center space-x-2">
+                    <div class="flex items-center justify-center space-x-3">
                       <PermissionWrapper requires="clientes_view">
                         <button
-                          class="text-blue-600 hover:text-blue-900 mr-2 focus:outline-none"
+                          class="p-2 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-600 transition-all duration-200 flex items-center justify-center"
                           @click="() => toClienteDetails(client.id_cliente)"
+                          title="Ver detalles del cliente"
                         >
                           <Eye class="h-5 w-5" aria-hidden="true" />
                         </button>
                       </PermissionWrapper>
-                      <PermissionWrapper requires="clientes_edit">
+                      <PermissionWrapper requires="polizas_view">
                         <button
-                          class="text-indigo-600 hover:text-indigo-900 mr-2 focus:outline-none"
-                          @click="() => toEditClient(client)"
-                        >
-                          <Edit class="h-5 w-5" aria-hidden="true" />
-                        </button>
-                      </PermissionWrapper>
-                      <PermissionWrapper requires="clientes_view">
-                        <button
-                          class="text-green-600 hover:text-green-900 focus:outline-none mr-2"
-                          @click="showClientPolizas(client.id_cliente)"
+                          class="p-2 rounded-xl border border-green-200 bg-green-50 hover:bg-green-100 text-green-600 transition-all duration-200 flex items-center justify-center"
+                          @click="viewClientPolicies(client.id_cliente)"
+                          title="Ver pólizas del cliente"
                         >
                           <FileText class="h-5 w-5" aria-hidden="true" />
-                        </button>
-                      </PermissionWrapper>
-                      <PermissionWrapper requires="clientes_delete">
-                        <button
-                          class="text-red-600 hover:text-red-900 focus:outline-none"
-                          @click="confirmDelete(client)"
-                        >
-                          <Trash class="h-5 w-5" aria-hidden="true" />
                         </button>
                       </PermissionWrapper>
                     </div>
@@ -207,40 +193,65 @@
       </div>
 
       <!-- Modales basados en rutas -->
-      <template v-else>
-        <ViewClientModal
-          v-if="currentModal === 'details'"
+      <template v-if="!isListView">
+        <!-- Mostrar el estado de modalCargando -->
+        <div v-if="loading" class="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[1100]">
+          <div class="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center">
+            <Loader class="w-12 h-12 animate-spin text-primary mb-4" />
+            <h3 class="text-lg font-semibold">Cargando información...</h3>
+            <p class="text-sm text-gray-500 mt-2">Por favor espere mientras cargamos los datos.</p>
+          </div>
+        </div>
+
+        <!-- Modal de detalles del cliente -->
+        <ModalVerCliente
+          v-if="currentModal === 'details' && selectedClientWithCorreduria"
           :show="true"
           :client="selectedClientWithCorreduria"
-          :usuarios="usuarios"
+          :id-usuario-correduria="selectedClientWithCorreduria.id_usuario_correduria ?? ''"
           @close="handleCloseModal"
-          @update-client="handleUpdateClient"
-          @delete-client="handleDeleteClient"
+          @updateClient="handleUpdateClient"
+          @deleteClient="handleDeleteClient"
         />
 
-        <AddClientModal
-          v-else-if="currentModal === 'new'"
-          :show="true"
-          @close="handleCloseModal"
-          @add-client="handleCreateClient"
-        />
-
-        <ViewClientPolicyModal
-          v-else-if="currentModal === 'policies' && selectedClientWithCorreduria"
+        <!-- Modal de pólizas del cliente -->
+        <ModalVerPolizasCliente
+          v-if="currentModal === 'policies' && selectedClientWithCorreduria"
           :show="true"
           :client="selectedClientWithCorreduria"
           :id-cliente="selectedClientWithCorreduria.id_cliente"
-          :usuarios="usuarios"
           @close="handleCloseModal"
+          @view-payments="handleViewPayments"
         />
 
-        <ViewClientPaymentsModal
-          v-else-if="currentModal === 'payments' && selectedClientWithCorreduria"
+        <!-- Debug información para modal de pagos -->
+        <div 
+          v-if="route.name === 'cliente-pagos' && !selectedClientWithCorreduria" 
+          class="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[1100]"
+        >
+          <div class="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center">
+            <AlertTriangle class="w-12 h-12 text-yellow-500 mb-4" />
+            <h3 class="text-lg font-semibold">Error de Visualización</h3>
+            <p class="text-sm text-gray-500 mt-2">
+              La ruta de pagos ha sido reemplazada con un sistema centralizado de modales.
+              <br>Si llegaste aquí desde un enlace antiguo, por favor utiliza la nueva interfaz.
+            </p>
+            <button 
+              class="mt-4 px-4 py-2 bg-primary text-white rounded-lg" 
+              @click="router.push({ name: 'clientes' })"
+            >
+              Volver a Clientes
+            </button>
+          </div>
+        </div>
+
+        <!-- Modal para agregar cliente -->
+        <ModalAgregarCliente
+          v-if="currentModal === 'new'"
           :show="true"
-          :client="selectedClientWithCorreduria"
-          :usuarios="usuarios"
-          :plan-de-pago-id="selectedPlanDePagoId"
+          :id-correduria="id_correduria"
           @close="handleCloseModal"
+          @create="handleCreateClient"
         />
       </template>
     </div>
@@ -256,16 +267,16 @@
   import { useUsuarios } from '@/composables/useUsuarios';
   import type { Database } from '@/lib/supabase';
   import SearchBar from '@/modules/common/components/SearchBar.vue';
-  import ViewClientModal from '@/modules/admin/components/ViewClientModal.vue';
-  import AddClientModal from '@/modules/admin/components/AddClientModal.vue';
-  import ViewClientPolicyModal from '@/modules/admin/components/ViewClientPolicyModal.vue';
-  import ViewClientPaymentsModal from '@/modules/admin/components/ViewClientPaymentsModal.vue';
+  import ModalVerCliente from '@/modules/admin/components/ModalVerCliente.vue';
+  import ModalAgregarCliente from '@/modules/admin/components/ModalAgregarCliente.vue';
+  import ModalVerPolizasCliente from '@/modules/admin/components/ModalVerPolizasCliente.vue';
   import PermissionWrapper from '@/components/PermissionWrapper.vue';
-  import { Plus, Mail, Phone, Eye, FileText, Users, Search, Edit, Trash, UserX, AlertCircle, Loader } from 'lucide-vue-next';
+  import { Plus, Mail, Phone, Eye, FileText, Users, Search, UserX, AlertCircle, Loader, AlertTriangle } from 'lucide-vue-next';
   import { useToast } from 'vue-toastification';
   import { useAuthStore } from '@/stores/auth.store';
   import { storeToRefs } from 'pinia';
   import type { Cliente as ClienteInterface } from '@/modules/admin/interfaces/cliente_interface';
+  import { usePagosStore } from '@/stores/pagosStore';
 
   // Tipo de base de datos para la tabla clientes
   type ClienteDB = Database['public']['Tables']['clientes']['Row'];
@@ -276,7 +287,7 @@
     tel_1: string | null;
     tel_2: string | null;
     dob: Date | null;
-    foto: string | null;
+    foto: string | null; // Añadido temporalmente para compatibilidad, será eliminado más adelante
     direccion: string | null; // Forzar a string | null
     total_polizas?: number;
     clientes_por_correduria?: {
@@ -300,22 +311,20 @@
   const router = useRouter();
   const route = useRoute();
   const toast = useToast();
-  const {
-    getClientes, // Devuelve { clientes: ClienteDB[], ... }
-    updateCliente,
-    deleteCliente,
-    getClienteById, // Devuelve ClienteDB | null
-    createCliente,
-  } = useClientes();
-  const permissions = usePermissions();
-  const authStore = useAuthStore();
-  const { id_correduria } = storeToRefs(authStore);
-  const currentUser = authStore.user;
+  const { getClientes, getClienteById } = useClientes();
+  const { id_correduria } = storeToRefs(useAuthStore());
   const {
     searchClients,
     filteredItems,
   } = useSearchClients();
   const { getUsuariosPorCorreduria } = useUsuarios();
+  const permissions = usePermissions();
+
+  // Props inyectadas por la ruta
+  const props = defineProps<{
+    id?: string; // id del cliente
+    planDePagoId?: string; // id del plan de pago (opcional)
+  }>();
 
   // Estado - Usar el tipo Cliente extendido
   const loading = ref(false);
@@ -326,32 +335,40 @@
   const paginaActual = ref(1);
   const limite = ref(10);
   const totalRegistros = ref(0);
-  const selectedPlanDePagoId = ref<string>('');
   const usuarios = ref<Usuario[]>([]);
 
   // Computed Properties
-  const isListView = computed(() => route.name === 'clientes');
+  const isListView = computed(() => {
+    // Verificar si estamos en la ruta principal de clientes (lista) o en una subruta (modal)
+    const modalRoutes = ['cliente-detalles', 'cliente-nuevo', 'cliente-polizas', 'cliente-pagos'];
+    return !modalRoutes.includes(route.name as string);
+  });
+  
   const currentModal = computed(() => {
+    let modal: 'details' | 'new' | 'policies' | 'payments' | null = null;
     switch (route.name) {
       case 'cliente-detalles':
-        return 'details';
+        modal = 'details';
+        break;
       case 'cliente-nuevo':
-        return 'new';
+        modal = 'new';
+        break;
       case 'cliente-polizas':
-        return 'policies';
+        modal = 'policies';
+        break;
       case 'cliente-pagos':
-        return 'payments';
-      default:
-        return null;
+        modal = 'payments';
+        break;
     }
+    console.log('currentModal:', modal, 'route.name:', route.name);
+    return modal;
   });
 
   // Computed devuelve el tipo Cliente extendido
   const selectedClientWithCorreduria = computed<Cliente | null>(() => {
-    if (!selectedClient.value) return null;
-
-    // Ya tenemos el tipo Cliente completo en selectedClient
-    return selectedClient.value;
+    const client = selectedClient.value;
+    console.log('selectedClientWithCorreduria:', client ? 'Cliente disponible' : 'null');
+    return client;
   });
 
   // Helper para convertir ClienteDB a Cliente
@@ -375,7 +392,6 @@
     // Tratar como tipo extendido para acceder a posibles propiedades
     const clienteDBExt = clienteDB as ClienteDB & {
       clientes_por_correduria?: CorreduriaRelFromDB[]; // Usar tipo auxiliar
-      foto?: string | null;
       direccion?: string | null;
       id_usuario_correduria?: string | null;
     };
@@ -416,7 +432,7 @@
       creado_por: clienteDB.creado_por,
       fecha_modificado: clienteDB.fecha_modificado ? new Date(clienteDB.fecha_modificado) : null,
       modificado_por: clienteDB.modificado_por,
-      foto: clienteDBExt.foto || null,
+      foto: null, // Añadido temporalmente como null hasta implementar la funcionalidad
       direccion: clienteDBExt.direccion || null,
       id_usuario_correduria: clienteDBExt.id_usuario_correduria || null,
       total_polizas: 0,
@@ -434,24 +450,40 @@
 
   // Watch para la búsqueda
   watch(searchQuery, async (newQuery) => {
-    if (newQuery.length >= 2) {
-      // searchClients devuelve ClienteInterface[], necesitamos convertirlos
-      await searchClients(newQuery, id_correduria.value);
-      // Asegurarnos de que el map no devuelva nulls si convertClienteDBToCliente falla
-      clientes.value = filteredItems.value
-        .map((cliInterface) => convertClienteDBToCliente(cliInterface as unknown as ClienteDB))
-        .filter((cliente): cliente is Cliente => cliente !== null);
-    } else if (newQuery.length === 0) {
-      await loadClientes();
+    try {
+      if (newQuery.length >= 2) {
+        // searchClients actualiza filteredItems internamente
+        await searchClients(newQuery, id_correduria.value);
+        // No debemos modificar clientes.value aquí, displayItems se encarga
+      } else if (newQuery.length === 0) {
+        // Si la búsqueda se borra, recargar la lista completa
+        await loadClientes();
+      }
+    } catch (error) {
+      console.error("Error en el watcher de búsqueda:", error);
     }
   });
 
-  // Watch para el cambio de ruta
+  // Watch para el cambio de ruta (usando props.id)
   watch(
-    () => route.params.id,
-    async (newId) => {
-      if (newId && (route.name === 'cliente-detalles' || route.name === 'cliente-polizas')) {
-        await loadClienteDetalle(newId.toString());
+    () => props.id,
+    async (newId, oldId) => {
+      console.log('Watch props.id: newId =', newId, 'oldId =', oldId, 'route.name =', route.name);
+      
+      // Solo cargar si estamos en una ruta que necesita los detalles del cliente
+      if (newId && ['cliente-detalles', 'cliente-polizas', 'cliente-pagos'].includes(route.name as string)) {
+        // Verificar si ya tenemos el cliente cargado con el mismo ID
+        if (selectedClient.value?.id_cliente !== newId) {
+          console.log('ID de cliente cambiado, cargando nuevo cliente...');
+          selectedClient.value = null; // Limpiar el cliente actual
+          await loadClienteDetalle(newId);
+        } else {
+          console.log('Cliente ya cargado, no es necesario volver a cargar');
+        }
+      } else if (!newId && selectedClient.value && isListView.value) {
+        // Si no hay ID y estamos volviendo a la vista de lista, limpiar el cliente seleccionado
+        console.log('Volviendo a vista de lista, limpiando cliente seleccionado');
+        selectedClient.value = null;
       }
     },
     { immediate: true },
@@ -459,23 +491,54 @@
 
   // Función para cargar detalles del cliente
   const loadClienteDetalle = async (id: string) => {
-    if (!id) return;
+    if (!id) {
+      console.error('loadClienteDetalle: ID es null o vacío');
+      return;
+    }
 
+    console.log('loadClienteDetalle iniciado con id:', id);
     loading.value = true;
+    error.value = null;
+    
     try {
-      const clienteDB = await getClienteById(id); // Devuelve ClienteDB | null
-      if (clienteDB) {
-        selectedClient.value = convertClienteDBToCliente(clienteDB);
+      // Verificar si ya tenemos el cliente en la lista local
+      const clienteEnLista = clientes.value.find(c => c.id_cliente === id);
+      if (clienteEnLista) {
+        console.log('Cliente encontrado en la lista local:', clienteEnLista.nombres);
+        selectedClient.value = clienteEnLista;
       } else {
-        toast.error('No se encontró el cliente');
-        router.push({ name: 'clientes' });
+        // Si no está en la lista, cargarlo desde el servidor
+        console.log('Cliente no encontrado en lista local, cargando desde servidor...');
+        const clienteDB = await getClienteById(id);
+        console.log('getClienteById respuesta:', clienteDB ? 'Cliente encontrado' : 'Cliente no encontrado');
+        
+        if (clienteDB) {
+          const clienteConvertido = convertClienteDBToCliente(clienteDB);
+          console.log('convertClienteDBToCliente resultado:', clienteConvertido ? 'Conversión exitosa' : 'Error en conversión');
+          
+          if (clienteConvertido) {
+            selectedClient.value = clienteConvertido;
+            
+            // Agregar a la lista local si no existe
+            if (!clientes.value.some(c => c.id_cliente === id)) {
+              clientes.value.push(clienteConvertido);
+            }
+          } else {
+            throw new Error('Error al convertir los datos del cliente');
+          }
+        } else {
+          throw new Error('No se encontró el cliente con ID: ' + id);
+        }
       }
     } catch (err) {
+      console.error('Error en loadClienteDetalle:', err);
       error.value = err as Error;
-      toast.error('Error al cargar los detalles del cliente');
-      console.error('Error al cargar los detalles del cliente:', err);
+      toast.error('Error al cargar los detalles del cliente: ' + (err instanceof Error ? err.message : String(err)));
+      selectedClient.value = null;
+      router.push({ name: 'clientes' });
     } finally {
       loading.value = false;
+      console.log('loadClienteDetalle completado, selectedClient:', selectedClient.value ? `Cliente ${selectedClient.value.nombres} asignado` : 'null');
     }
   };
 
@@ -540,180 +603,132 @@
       .toUpperCase();
   };
 
-  // Methods - Navegación
-  const openAddClientModal = () => {
-    if (!permissions.hasPermission('clientes_create') && !permissions.isSuperAdmin.value) {
-      toast.error('No tienes permiso para crear clientes');
-      return;
+  // Navegación a detalles del cliente
+  const toClienteDetails = async (idCliente: string) => {
+    console.log('toClienteDetails llamado con id:', idCliente);
+    
+    try {
+      // Primero cargar los datos del cliente
+      loading.value = true;
+      
+      // Verificar si ya tenemos el cliente en la lista local
+      const clienteEnLista = clientes.value.find(c => c.id_cliente === idCliente);
+      if (clienteEnLista) {
+        console.log('Cliente encontrado en la lista local, asignando:', clienteEnLista.nombres);
+        selectedClient.value = clienteEnLista;
+      } else {
+        // Si no está en la lista, cargarlo desde el servidor
+        console.log('Cliente no encontrado en lista local, cargando desde servidor...');
+        await loadClienteDetalle(idCliente);
+      }
+      
+      // Verificar que se haya cargado correctamente
+      if (selectedClient.value) {
+        console.log('Cliente cargado correctamente, navegando a detalles:', selectedClient.value.nombres);
+        
+        // Ahora que tenemos el cliente, navegar a la ruta de detalles
+        router.push({
+          name: 'cliente-detalles',
+          params: { id: idCliente },
+        });
+      } else {
+        throw new Error('No se pudo cargar la información del cliente');
+      }
+    } catch (error) {
+      console.error('Error al cargar detalles del cliente:', error);
+      toast.error('Error al cargar los detalles del cliente: ' + 
+                  (error instanceof Error ? error.message : String(error)));
+    } finally {
+      loading.value = false;
     }
+  };
+
+  // Navegación a "Nuevo Cliente"
+  const openAddClientModal = () => {
     router.push({ name: 'cliente-nuevo' });
   };
 
-  const toClienteDetails = (id: string) => {
-    if (!permissions.hasPermission('clientes_view') && !permissions.isSuperAdmin.value) {
-      toast.error('No tienes permiso para ver detalles de clientes');
-      return;
-    }
-    router.push(`/admin/clientes/${id}/details`);
-  };
-
-  const toEditClient = (client: Cliente) => {
-    if (!permissions.hasPermission('clientes_edit') && !permissions.isSuperAdmin.value) {
-      toast.error('No tienes permiso para editar clientes');
-      return;
-    }
-    router.push(`/admin/clientes/${client.id_cliente}/edit`);
-  };
-
-  const showClientPolizas = (id: string) => {
-    if (!permissions.hasPermission('clientes_view') && !permissions.isSuperAdmin.value) {
-      toast.error('No tienes permiso para ver las pólizas');
-      return;
-    }
-    router.push({ name: 'cliente-polizas', params: { id } });
-  };
-
-  const confirmDelete = (client: Cliente) => {
-    if (!permissions.hasPermission('clientes_delete') && !permissions.isSuperAdmin.value) {
-      toast.error('No tienes permiso para eliminar clientes');
-      return;
-    }
-
-    if (confirm(`¿Estás seguro que deseas eliminar al cliente ${client.nombres}?`)) {
-      handleDeleteClient(client.id_cliente);
-    }
-  };
-
+  // Manejar el cierre del modal (volver a listado)
   const handleCloseModal = () => {
-    selectedClient.value = null;
+    if (isListView.value) return; // Solo realizar si estamos en vista modal
     router.push({ name: 'clientes' });
   };
 
-  // Methods - Acciones CRUD
-  const handleCreateClient = async (formData: FormData) => {
-    if (!permissions.hasPermission('clientes_create') && !permissions.isSuperAdmin.value) {
-      toast.error('No tienes permiso para crear clientes');
-      return;
+  // Manejar la actualización de un cliente
+  const handleUpdateClient = (cliente: Cliente) => {
+    // Actualizar en el arreglo local primero
+    const index = clientes.value.findIndex((c) => c.id_cliente === cliente.id_cliente);
+    if (index !== -1) {
+      clientes.value[index] = { ...clientes.value[index], ...cliente };
     }
 
-    try {
-      // Extraer los campos necesarios de FormData
-      const clientData = {
-        identificacion: formData.get('identificacion') as string,
-        correo: formData.get('correo') as string,
-        nombres: formData.get('nombres') as string,
-        apellidos: formData.get('apellidos') as string,
-        tel_1: (formData.get('tel_1') as string) || null,
-        tel_2: (formData.get('tel_2') as string) || null,
-        empresa: (formData.get('empresa') as string) || null,
-        direccion: (formData.get('direccion') as string) || null,
-        dob: formData.get('dob') ? new Date(formData.get('dob') as string) : null,
-        creado_por: currentUser?.id || '',
-        estado: true,
-      };
-
-      // La función createCliente ahora se encarga de crear el cliente y asociarlo con la correduría
-      const newClient = await createCliente(clientData);
-
-      if (newClient && newClient.id_cliente) {
-        // Recargar la lista de clientes
-        await loadClientes();
-        handleCloseModal();
-        toast.success('Cliente creado correctamente');
-      } else {
-        toast.error('Error al crear el cliente: respuesta incompleta');
-      }
-    } catch (error) {
-      console.error('Error al crear cliente:', error);
-      toast.error('Error al crear el cliente');
+    // Actualizar vista modal si es necesario
+    if (selectedClient.value?.id_cliente === cliente.id_cliente) {
+      selectedClient.value = { ...selectedClient.value, ...cliente };
     }
+
+    // Navegar de vuelta al listado
+    router.push({ name: 'clientes' });
+    toast.success('Cliente actualizado exitosamente');
   };
 
-  const handleUpdateClient = async (client: Database['public']['Tables']['clientes']['Row']) => {
-    if (!permissions.hasPermission('clientes_edit') && !permissions.isSuperAdmin.value) {
-      toast.error('No tienes permiso para editar clientes');
+  // Manejar el borrado de un cliente
+  const handleDeleteClient = (idCliente: string) => {
+    // Eliminar del arreglo local primero
+    clientes.value = clientes.value.filter((c) => c.id_cliente !== idCliente);
+    
+    // Navegar de vuelta al listado
+    router.push({ name: 'clientes' });
+    toast.success('Cliente eliminado exitosamente');
+  };
+
+  // Manejar la creación de un cliente
+  const handleCreateClient = () => {
+    // Función simplificada para cerrar el modal y actualizar la UI
+    router.push({ name: 'clientes' });
+    toast.success('Cliente creado exitosamente');
+  };
+
+  // Methods - Acciones CRUD
+  
+  // Añadir una función para navegar a la vista completa de pólizas del cliente
+  const viewClientPolicies = async (clientId: string) => {
+    console.log("viewClientPolicies llamado con id:", clientId);
+    
+    // Validar que el ID del cliente sea válido
+    if (!clientId || clientId.trim() === '') {
+      console.error("Error: ID del cliente no válido:", clientId);
+      toast.error("No se puede mostrar las pólizas: ID de cliente no válido");
       return;
     }
-
+    
+    // Asegurarnos de tener los datos del cliente antes de navegar
     try {
-      console.log('Actualizando cliente desde el componente padre:', client);
-
-      if (!client.id_cliente) {
-        toast.error('Error: ID de cliente no válido');
+      loading.value = true;
+      // Si el cliente seleccionado es diferente al que estamos intentando ver
+      if (!selectedClient.value || selectedClient.value.id_cliente !== clientId) {
+        console.log("Cliente actual no coincide, cargando nuevo cliente:", clientId);
+        await loadClienteDetalle(clientId);
+      }
+      
+      // Verificar que el cliente se haya cargado correctamente
+      if (!selectedClient.value || selectedClient.value.id_cliente !== clientId) {
+        console.error("Error: No se pudo cargar el cliente antes de mostrar pólizas");
+        toast.error("No se pudo cargar el cliente. Inténtalo de nuevo.");
         return;
       }
-
-      // Preparar datos para actualización
-      const clientData = {
-        identificacion: client.identificacion,
-        correo: client.correo,
-        nombres: client.nombres,
-        tel_1: client.tel_1,
-        tel_2: client.tel_2,
-        empresa: client.empresa,
-        direccion: client.direccion,
-        dob: client.dob,
-        modificado_por: currentUser?.id || '',
-      };
-
-      // Guardar el resultado para verificar si fue exitoso
-      const result = await updateCliente(client.id_cliente, clientData);
-
-      if (!result) {
-        throw new Error('No se pudo actualizar el cliente');
-      }
-
-      // Recargar la lista completa para reflejar los cambios
-      await loadClientes();
-
-      // Actualizar clienteDetalle si es el mismo que estamos editando
-      if (selectedClient.value && selectedClient.value.id_cliente === client.id_cliente) {
-        selectedClient.value = { ...selectedClient.value, ...result };
-      }
-
-      handleCloseModal();
-      toast.success('Cliente actualizado correctamente');
+      
+      // Si llegamos aquí, tenemos el cliente cargado, navegamos
+      console.log("Navegando a vista de pólizas con ID cliente:", clientId);
+      router.push({
+        name: 'cliente-polizas',
+        params: { id: clientId }
+      });
     } catch (error) {
-      console.error('Error al actualizar cliente:', error);
-      let errorMsg = 'Error al actualizar el cliente';
-
-      if (error instanceof Error) {
-        errorMsg += `: ${error.message}`;
-      }
-
-      toast.error(errorMsg);
-    }
-  };
-
-  const handleDeleteClient = async (id: string) => {
-    if (!permissions.hasPermission('clientes_delete') && !permissions.isSuperAdmin.value) {
-      toast.error('No tienes permiso para eliminar clientes');
-      return;
-    }
-
-    try {
-      console.log('Eliminando cliente desde el componente padre, ID:', id);
-
-      // Guardar el resultado para verificar si fue exitoso
-      const result = await deleteCliente(id);
-
-      if (!result) {
-        throw new Error('No se pudo eliminar el cliente');
-      }
-
-      // Si llegamos aquí, la eliminación fue exitosa
-      await loadClientes();
-      handleCloseModal();
-      toast.success('Cliente eliminado correctamente');
-    } catch (error) {
-      console.error('Error al eliminar cliente:', error);
-      let errorMsg = 'Error al eliminar el cliente';
-
-      if (error instanceof Error) {
-        errorMsg += `: ${error.message}`;
-      }
-
-      toast.error(errorMsg);
+      console.error("Error al preparar navegación a pólizas:", error);
+      toast.error("Error al cargar información necesaria para mostrar pólizas");
+    } finally {
+      loading.value = false;
     }
   };
 
@@ -733,13 +748,13 @@
     await loadUsuarios();
     console.log('[onMounted] loadClientes y loadUsuarios completados.');
 
-    // Cargar detalles si estamos en una ruta de detalle
+    // Cargar detalles si estamos en una ruta de detalle (usando props.id)
     if (
-      route.params.id &&
-      (route.name === 'cliente-detalles' || route.name === 'cliente-polizas')
+      props.id &&
+      (route.name === 'cliente-detalles' || route.name === 'cliente-polizas' || route.name === 'cliente-pagos')
     ) {
-      console.log('[onMounted] Llamando a loadClienteDetalle...');
-      await loadClienteDetalle(route.params.id.toString());
+      console.log('[onMounted] Llamando a loadClienteDetalle con ID de prop...');
+      await loadClienteDetalle(props.id);
       console.log('[onMounted] loadClienteDetalle completado.');
     }
     console.log('[onMounted] Hook finalizado.');
@@ -782,4 +797,44 @@
       minute: '2-digit'
     }).format(date);
   }
+
+  // Manejar el evento viewPayments en el componente ViewClientPolicyModal
+  const handleViewPayments = async (planDePagoId: string) => {
+    try {
+      console.log("Abriendo modal de pagos para el plan:", planDePagoId);
+      
+      const clientId = selectedClientWithCorreduria.value?.id_cliente;
+      console.log("Cliente seleccionado:", selectedClientWithCorreduria.value);
+      
+      if (!clientId) {
+        console.error("Error: No se pudo obtener el ID del cliente");
+        toast.error("No se pudo mostrar los pagos: ID de cliente no disponible");
+        return;
+      }
+
+      // Verificar que tengamos datos del cliente antes de abrir el modal
+      if (!selectedClient.value || selectedClient.value.id_cliente !== clientId) {
+        loading.value = true;
+        console.log("Cargando datos del cliente antes de abrir modal...");
+        
+        await loadClienteDetalle(clientId);
+        
+        // Verificar de nuevo después de la carga
+        if (!selectedClient.value) {
+          throw new Error("No se pudo cargar la información del cliente");
+        }
+      }
+      
+      // Usar el store de pagos para abrir el modal
+      const pagosStore = usePagosStore();
+      pagosStore.abrirModalPagos(planDePagoId, selectedClient.value);
+      
+      console.log("Modal de pagos abierto con éxito");
+    } catch (error) {
+      console.error("Error al abrir el modal de pagos:", error);
+      toast.error(`Error al mostrar los pagos: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    } finally {
+      loading.value = false;
+    }
+  };
 </script>

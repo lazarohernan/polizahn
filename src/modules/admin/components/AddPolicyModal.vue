@@ -9,7 +9,7 @@
       leave-to-class="opacity-0"
     >
       <div
-        v-if="show"
+        v-if="props.show"
         class="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-end md:items-center justify-center z-[1100]"
         @click="handleClose"
       >
@@ -22,7 +22,7 @@
           leave-to-class="translate-y-8 opacity-0"
         >
           <div
-            v-if="show"
+            v-if="props.show"
             class="w-full h-[90vh] md:h-auto md:max-h-[90vh] md:w-[90%] lg:w-[700px] overflow-y-auto bg-background rounded-t-[2rem] md:rounded-[2rem] border border-container-border shadow-[0_8px_32px_rgba(0,0,0,0.2)] transition-colors duration-200"
             @click.stop
           >
@@ -287,8 +287,9 @@
     message: string;
   }
 
-  const { show } = defineProps<{
+  const props = defineProps<{
     show: boolean;
+    clientId?: string; // ID del cliente para asociar la póliza
   }>();
 
   const emit = defineEmits<{
@@ -598,10 +599,11 @@
             id_correduria: id_correduria.value,
           };
 
-          // Añadir id_aseguradora con aserción de tipo
+          // Añadir id_aseguradora y id_cliente si está disponible
           const newPoliza = {
             ...newPolizaBase,
-            id_aseguradora: selectedInsurer.value
+            id_aseguradora: selectedInsurer.value,
+            ...(props.clientId && { id_cliente: props.clientId }) // Agregar id_cliente solo si está disponible
           } as InsertPoliza;
 
           const { ok, message, data: polizaData } = await createPoliza(newPoliza);
